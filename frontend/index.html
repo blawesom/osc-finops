@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSC-FinOps</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login Screen (shown when not authenticated) -->
+        <div id="login-screen" class="screen">
+            <div class="login-container">
+                <h1>OSC-FinOps</h1>
+                <p class="subtitle">Financial Operations for Outscale</p>
+                
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="access-key">Access Key</label>
+                        <input type="text" id="access-key" name="access_key" required autocomplete="off">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="secret-key">Secret Key</label>
+                        <input type="password" id="secret-key" name="secret_key" required autocomplete="off">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="region">Region <span class="required">*</span></label>
+                        <select id="region" name="region" required>
+                            <option value="">Select a region...</option>
+                            <option value="cloudgouv-eu-west-1">cloudgouv-eu-west-1</option>
+                            <option value="eu-west-2">eu-west-2</option>
+                            <option value="us-west-1">us-west-1</option>
+                            <option value="us-east-2">us-east-2</option>
+                        </select>
+                        <small class="help-text">Credentials will be validated for the selected region</small>
+                    </div>
+                    
+                    <div id="login-error" class="error-message" style="display: none;"></div>
+                    
+                    <button type="submit" id="login-button" class="btn btn-primary">
+                        <span id="login-button-text">Login</span>
+                        <span id="login-button-spinner" class="spinner" style="display: none;"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Main Application (shown when authenticated) -->
+        <div id="main-app" class="screen" style="display: none;">
+            <header class="app-header">
+                <h1>OSC-FinOps</h1>
+                <div class="header-actions">
+                    <span id="session-info" class="session-info"></span>
+                    <button id="logout-button" class="btn btn-secondary">Logout</button>
+                </div>
+            </header>
+            
+            <nav class="tab-navigation">
+                <button class="tab-button active" data-tab="quotes">Quotes</button>
+                <button class="tab-button" data-tab="consumption">Consumption</button>
+                <button class="tab-button" data-tab="cost">Cost</button>
+                <button class="tab-button" data-tab="trends">Trends</button>
+                <button class="tab-button" data-tab="budgets">Budgets</button>
+            </nav>
+            
+            <main class="main-content">
+                <div id="tab-content">
+                    <div class="tab-panel active" id="tab-quotes">
+                        <h2>Quote Building</h2>
+                        <p>Quote building functionality will be implemented in Phase 2.</p>
+                    </div>
+                    
+                    <div class="tab-panel" id="tab-consumption" style="display: none;">
+                        <h2>Consumption History</h2>
+                        <p>Consumption history functionality will be implemented in Phase 3.</p>
+                    </div>
+                    
+                    <div class="tab-panel" id="tab-cost" style="display: none;">
+                        <h2>Current Cost Evaluation</h2>
+                        <p>Current cost evaluation functionality will be implemented in Phase 4.</p>
+                    </div>
+                    
+                    <div class="tab-panel" id="tab-trends" style="display: none;">
+                        <h2>Trend Analysis</h2>
+                        <p>Trend analysis functionality will be implemented in Phase 5.</p>
+                    </div>
+                    
+                    <div class="tab-panel" id="tab-budgets" style="display: none;">
+                        <h2>Budget Management</h2>
+                        <p>Budget management functionality will be implemented in Phase 6.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script src="/js/auth.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
+
