@@ -165,6 +165,22 @@ osc-finops/
 3. **Refresh browser** to see frontend changes
 4. **Check console** for errors and logs
 
+## Quick Start
+
+### Automated Setup
+
+```bash
+# Run setup script (creates venv and installs dependencies)
+./setup.sh
+
+# Start development server
+./start.sh
+```
+
+The application will be available at: **http://localhost:5000**
+
+For detailed testing instructions, see [tests/TESTING.md](tests/TESTING.md).
+
 ## Usage
 
 ### First Time Setup
@@ -344,8 +360,9 @@ For issues, questions, or contributions, please contact the development team.
 ## Roadmap
 
 See the implementation plan for detailed phases:
-- Phase 0: Project Foundation & Documentation (Current)
-- Phase 1: Authentication & Session Management
+- Phase 0: Project Foundation & Documentation ✅ **COMPLETED & VALIDATED**
+- Phase 1: Authentication & Session Management ✅ **COMPLETED & VALIDATED**
+- Phase 2: Catalog Integration & Quote Building (Next)
 - Phase 2: Catalog Integration & Quote Building
 - Phase 3: Consumption History
 - Phase 4: Current Cost Evaluation
