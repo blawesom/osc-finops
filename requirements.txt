@@ -1,0 +1,55 @@
+# OSC-FinOps Backend Dependencies
+# Python 3.8+ required
+
+# Web Framework
+flask>=2.3.0,<3.0.0
+flask-cors>=4.0.0
+flask-session>=0.5.0
+
+# Alternative: FastAPI (uncomment if using FastAPI instead of Flask)
+# fastapi>=0.104.0
+# uvicorn[standard]>=0.24.0
+# python-multipart>=0.0.6
+
+# Outscale SDK
+osc-sdk-python>=0.38.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Date/Time Handling
+python-dateutil>=2.8.2
+
+# Validation
+marshmallow>=3.20.0
+# Alternative: Pydantic (if using FastAPI)
+# pydantic>=2.0.0
+
+# Export/Report Generation
+openpyxl>=3.1.0  # For ODS/Excel export
+reportlab>=4.0.0  # For PDF export (optional)
+
+# Caching
+cachetools>=5.3.0
+
+# HTTP Requests (if needed beyond SDK)
+requests>=2.31.0
+
+# Logging
+python-json-logger>=2.0.7
+
+# Testing
+pytest>=7.4.0
+pytest-timeout>=2.1.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+
+# Development Tools
+black>=23.9.0
+flake8>=6.1.0
+mypy>=1.6.0
+
+# Security
+cryptography>=41.0.0
+

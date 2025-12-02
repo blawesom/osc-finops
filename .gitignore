@@ -1,0 +1,114 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+env/
+ENV/
+.venv
+.venv*/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+.cursor/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+.cache/
+
+# Environment and configuration
+.env
+.env.local
+.env.*.local
+*.local
+config.local.json
+credentials.json
+*.key
+*.pem
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.hypothesis/
+.pytest_cache/
+
+# Local development
+.local/
+local/
+test-output/
+*.test.js.map
+
+# Build artifacts
+dist/
+build/
+out/
+
+# Credentials and sensitive data (CRITICAL - never commit)
+*.credentials
+*.secret
+*.access_key
+*.secret_key
+session_data/
+cache/credentials/
+
+# Exported files (user-generated)
+exports/
+*.csv
+*.pdf
+*.ods
+
+# Catalog cache (can be regenerated)
+backend/cache/catalog_*.json
+
+# Session data (in-memory only, but backup files if any)
+sessions/
+*.session
+
