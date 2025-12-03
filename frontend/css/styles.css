@@ -632,3 +632,133 @@ body {
     }
 }
 
+
+
+/* Consumption Styles */
+
+/* Consumption Filters */
+.consumption-filters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.consumption-filters .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    align-items: end;
+}
+
+.consumption-filters .form-row:last-child {
+    margin-top: var(--spacing-sm);
+    justify-content: flex-start;
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+/* Summary Cards */
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.summary-card {
+    padding: var(--spacing-lg);
+    background-color: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    text-align: center;
+}
+
+.summary-card-label {
+    font-size: 12px;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--spacing-xs);
+}
+
+.summary-card-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+/* Consumption Table */
+.table-container {
+    overflow-x: auto;
+    margin-top: var(--spacing-md);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.data-table thead {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.data-table th {
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+.data-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Top Drivers List */
+.top-drivers-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.top-drivers-list li {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    gap: var(--spacing-md);
+}
+
+.top-drivers-list li:last-child {
+    border-bottom: none;
+}
+
+.driver-rank {
+    font-weight: bold;
+    color: var(--primary-color);
+    min-width: 30px;
+}
+
+.driver-name {
+    flex: 1;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.driver-cost {
+    font-weight: bold;
+    color: var(--success-color);
+    text-align: right;
+    min-width: 100px;
+}

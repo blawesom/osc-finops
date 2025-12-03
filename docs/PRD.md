@@ -231,17 +231,20 @@ Enable users to retrieve and analyze consumption history with various granularit
 - **US-2.5**: As a project manager, I want to filter consumption by tags so I can track project costs
 
 #### Acceptance Criteria
-- [ ] Users can query consumption for date ranges
-- [ ] System supports granularity: day, week, month
-- [ ] Users can filter by region, service, resource type
-- [ ] System supports multiple accounts and regions
-- [ ] System displays consumption entries with cost breakdown
-- [ ] System aggregates consumption by resource type, region, or tag
-- [ ] System calculates total costs per period
-- [ ] System identifies top cost drivers
-- [ ] Users can export consumption data to CSV/JSON
-- [ ] Consumption data is cached (1h TTL)
-- [ ] Query performance < 5 seconds for 1 month of data
+- [x] Users can query consumption for date ranges
+- [x] System supports granularity: day, week, month
+- [x] Users can filter by region, service, resource type
+- [x] System supports multiple accounts and regions
+- [x] System displays consumption entries with cost breakdown
+- [x] System aggregates consumption by resource type, region, or tag
+- [x] System calculates total costs per period
+- [x] System identifies top cost drivers
+- [x] Users can export consumption data to CSV/JSON
+- [x] Consumption data is cached (1h TTL)
+- [x] Query performance < 5 seconds for 1 month of data
+- [x] Currency is extracted from catalog entries
+- [x] Region is displayed in consumption data
+- [x] Total cost is calculated and displayed in summary
 
 #### Technical Requirements
 - Integration with osc-sdk-python ReadConsumptionAccount API
@@ -542,10 +545,14 @@ All non-functional requirements must be met:
 - Export functionality (CSV export)
 - **Status**: All Phase 2 deliverables completed and validated
 
-### Phase 3: Core Features - Consumption History
+### Phase 3: Core Features - Consumption History ✅ **COMPLETED & VALIDATED**
 - Consumption query and display
 - Filtering and aggregation
 - Export functionality
+- Currency extraction from catalog
+- Region display in consumption data
+- Total cost calculation and display
+- **Status**: All Phase 3 deliverables completed and validated
 
 ### Phase 4: Core Features - Current Cost Evaluation
 - Resource cost evaluation

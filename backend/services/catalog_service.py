@@ -118,9 +118,21 @@ def fetch_catalog(region: str) -> Dict:
         catalog = response_data.get("Catalog", {})
         entries = catalog.get("Entries", [])
         
+        # Extract currency from catalog entries (all entries should have same currency)
+        currency = None
+        if entries:
+            # Try to get currency from first entry
+            first_entry = entries[0]
+            currency = first_entry.get("Currency") or first_entry.get("currency")
+        
+        # Fallback to EUR if no currency found
+        if not currency:
+            currency = "EUR"
+        
         return {
             "region": region,
             "entries": entries,
+            "currency": currency,
             "fetched_at": datetime.utcnow().isoformat(),
             "entry_count": len(entries)
         }

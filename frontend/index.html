@@ -275,8 +275,126 @@
                     </div>
                     
                     <div class="tab-panel" id="tab-consumption" style="display: none;">
-                        <h2>Consumption History</h2>
-                        <p>Consumption history functionality will be implemented in Phase 3.</p>
+                        <div id="consumption-loading" class="loading-message" style="display: none;">Loading consumption data...</div>
+                        <div id="consumption-error" class="error-message" style="display: none;"></div>
+                        
+                        <!-- Filters Section -->
+                        <section class="consumption-section">
+                            <h2>Filters</h2>
+                            <div class="consumption-filters">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="consumption-from-date">From Date</label>
+                                        <input type="date" id="consumption-from-date" class="form-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="consumption-to-date">To Date</label>
+                                        <input type="date" id="consumption-to-date" class="form-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="consumption-granularity">Granularity</label>
+                                        <select id="consumption-granularity" class="form-input">
+                                            <option value="day">Day</option>
+                                            <option value="week">Week</option>
+                                            <option value="month">Month</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="consumption-region">Region</label>
+                                        <select id="consumption-region" class="form-input">
+                                            <option value="">All Regions</option>
+                                            <option value="cloudgouv-eu-west-1">cloudgouv-eu-west-1</option>
+                                            <option value="eu-west-2">eu-west-2</option>
+                                            <option value="us-west-1">us-west-1</option>
+                                            <option value="us-east-2">us-east-2</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="consumption-service">Service</label>
+                                        <select id="consumption-service" class="form-input">
+                                            <option value="">All Services</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="consumption-resource-type">Resource Type</label>
+                                        <select id="consumption-resource-type" class="form-input">
+                                            <option value="">All Resource Types</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="consumption-aggregate-by">Aggregate By</label>
+                                        <select id="consumption-aggregate-by" class="form-input">
+                                            <option value="">None</option>
+                                            <option value="resource_type">Resource Type</option>
+                                            <option value="region">Region</option>
+                                            <option value="tag">Tag</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <button id="consumption-apply-filters" class="btn btn-primary">Apply Filters</button>
+                                    <button id="consumption-clear-filters" class="btn btn-secondary">Clear Filters</button>
+                                    <button id="consumption-export-csv" class="btn btn-secondary">Export CSV</button>
+                                    <button id="consumption-export-json" class="btn btn-secondary">Export JSON</button>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        <!-- Summary Cards -->
+                        <section class="consumption-section">
+                            <h2>Summary</h2>
+                            <div class="summary-cards">
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Total Cost</div>
+                                    <div class="summary-card-value" id="consumption-total-cost">$0.00</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Period Count</div>
+                                    <div class="summary-card-value" id="consumption-period-count">0</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Average Daily Cost</div>
+                                    <div class="summary-card-value" id="consumption-avg-daily">$0.00</div>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        <!-- Consumption Table -->
+                        <section class="consumption-section">
+                            <h2>Consumption Data</h2>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>From Date</th>
+                                            <th>To Date</th>
+                                            <th>Service</th>
+                                            <th>Resource Type</th>
+                                            <th>Operation</th>
+                                            <th>Value</th>
+                                            <th>Unit Price</th>
+                                            <th>Total Cost</th>
+                                            <th>Region</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="consumption-table-body">
+                                        <tr>
+                                            <td colspan="9" class="empty-message">Select filters and click "Apply Filters" to load consumption data</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                        
+                        <!-- Top Cost Drivers -->
+                        <section class="consumption-section">
+                            <h2>Top Cost Drivers</h2>
+                            <div id="consumption-top-drivers">
+                                <p class="empty-message">Load consumption data to see top cost drivers</p>
+                            </div>
+                        </section>
                     </div>
                     
                     <div class="tab-panel" id="tab-cost" style="display: none;">
@@ -303,6 +421,8 @@
     <script src="/js/catalog.js"></script>
     <script src="/js/quote.js"></script>
     <script src="/js/quote-builder.js"></script>
+    <script src="/js/consumption.js"></script>
+    <script src="/js/consumption-builder.js"></script>
     <script>
         // Initialize quote builder when quotes tab is shown
         document.addEventListener('DOMContentLoaded', () => {
