@@ -33,8 +33,8 @@ Design a comprehensive FinOps service for Outscale customers and users, targetin
 - Save and load quote templates
 
 **FR-1.2**: Catalog Management
-- Load catalogs from Outscale API (ReadCatalog)
-- **ReadCatalog API does not require authentication** - catalog can be accessed without user credentials
+- Load catalogs from Outscale API (ReadPublicCatalog)
+- **ReadPublicCatalog API does not require authentication** - catalog can be accessed without user credentials
 - Cache catalogs locally with refresh capability
 - Support multiple regions: cloudgouv-eu-west-1, eu-west-2, us-west-1, us-east-2
 - Filter resources by category (Compute, Storage, Network, Licence)

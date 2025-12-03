@@ -5,6 +5,8 @@ from marshmallow import Schema, fields, ValidationError, validate
 from backend.auth.session_manager import session_manager
 from backend.auth.validator import validate_credentials, validate_region
 from backend.utils.errors import error_response, success_response
+from backend.database import get_db
+from backend.services.user_service import UserService
 
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
@@ -34,20 +36,35 @@ def login():
         if not is_valid_region:
             return error_response("INVALID_REGION", region_error, 400)
         
-        # Validate credentials
-        is_valid, error_msg = validate_credentials(access_key, secret_key, region)
+        # Validate credentials and get account_id
+        is_valid, error_msg, account_id = validate_credentials(access_key, secret_key, region)
         if not is_valid:
             return error_response("INVALID_CREDENTIALS", error_msg, 401)
         
-        # Create session
-        session = session_manager.create_session(access_key, secret_key, region)
+        if not account_id:
+            return error_response("ACCOUNT_ERROR", "Could not retrieve account information", 500)
         
-        # Return session info (without sensitive data)
-        return success_response({
-            "session_id": session.session_id,
-            "region": session.region,
-            "expires_at": session.expires_at.isoformat()
-        }, 200)
+        # Get or create user in database
+        db = next(get_db())
+        try:
+            user = UserService.create_or_update_user(db, account_id, access_key)
+            
+            # Create session
+            session = session_manager.create_session(
+                user_id=user.user_id,
+                access_key=access_key,
+                secret_key=secret_key,
+                region=region
+            )
+            
+            # Return session info (without sensitive data)
+            return success_response({
+                "session_id": session.session_id,
+                "region": session.region,
+                "expires_at": session.expires_at.isoformat()
+            }, 200)
+        finally:
+            db.close()
     
     except ValidationError as e:
         return error_response("VALIDATION_ERROR", "Invalid request data", 400, {"fields": e.messages})

@@ -49,6 +49,12 @@ const App = {
         }
         
         this.currentTab = tabName;
+        
+        // Initialize quote builder if switching to quotes tab
+        // Only init if not already initialized (prevents duplicate event listeners)
+        if (tabName === 'quotes' && typeof QuoteBuilder !== 'undefined' && !QuoteBuilder.initialized) {
+            QuoteBuilder.init();
+        }
     }
 };
 

@@ -67,6 +67,10 @@ OSC-FinOps consolidates functionality from existing tools into a single, integra
 - As a project manager, I want to track costs by project tags so I can monitor project spending
 - As a project manager, I want to set budgets per project so I can control spending
 - As a project manager, I want to receive budget alerts so I can take action before exceeding budgets
+- As a project manager, I want to save quotes so I can work on multiple estimates
+- As a project manager, I want to load saved quotes so I can continue editing them
+- As a project manager, I want to delete quotes so I can clean up outdated estimates
+- As a project manager, I want to see my saved quotes so I can manage my estimates
 
 ### 2.2 CFO
 
@@ -156,9 +160,13 @@ Enable users to build cost estimates (quotes) for planned infrastructure deploym
 - **US-1.3**: As a project manager, I want to apply commitment discounts so I can see cost savings
 - **US-1.4**: As a project manager, I want to apply global discounts so I can account for negotiated rates
 - **US-1.5**: As a project manager, I want to export quotes so I can share them with stakeholders
+- **US-1.6**: As a project manager, I want to save quotes so I can work on them later
+- **US-1.7**: As a project manager, I want to load saved quotes so I can continue working on them
+- **US-1.8**: As a project manager, I want to delete quotes so I can remove outdated estimates
+- **US-1.9**: As a project manager, I want to see my saved quotes list so I can manage multiple estimates
 
 #### Acceptance Criteria
-- [ ] **ReadCatalog API works without authentication** - catalog can be accessed without user credentials
+- [ ] **ReadPublicCatalog API works without authentication** - catalog can be accessed without user credentials
 - [ ] Users can select resources from multiple region catalogs (cloudgouv-eu-west-1, eu-west-2, us-west-1, us-east-2)
 - [ ] Users can filter resources by category (Compute, Storage, Network, Licence)
 - [ ] Users can configure resource parameters (quantity, size, duration)
@@ -172,14 +180,39 @@ Enable users to build cost estimates (quotes) for planned infrastructure deploym
 - [ ] Users can save and load quote templates
 - [ ] Catalog data is cached (24h TTL)
 - [ ] Catalog can be refreshed on demand
+- [ ] Users can create a new quote (becomes active)
+- [ ] Only one active quote per user at a time
+- [ ] Users can save active quotes (moves to saved state)
+- [ ] Users can load saved quotes (becomes active)
+- [ ] Users can delete saved quotes
+- [x] Users can delete active quotes (automatically loads next saved quote)
+- [x] Quotes are automatically saved when switching or creating new quotes
+- [x] Quotes are automatically loaded when selected from dropdown
+- [ ] Quotes persist across sessions (user-scoped)
+- [ ] Quote metadata includes creation timestamp, last update timestamp, and owner
+- [ ] Users can list all their saved quotes
+- [ ] Active quote is automatically loaded when user logs in
 
 #### Technical Requirements
-- Integration with osc-sdk-python ReadCatalog API
+- Integration with osc-sdk-python ReadPublicCatalog API
 - Multi-region catalog support
 - Catalog caching with 24-hour TTL
 - Cost calculation logic matching cockpit-ext
 - Discount rules per resource category
 - Export functionality (CSV, PDF)
+- Quote persistence (user-scoped storage)
+- Quote lifecycle management (active/saved states)
+- Quote metadata tracking (timestamps, owner)
+- Quote CRUD operations (create, save, load, delete, list)
+
+#### Quote Management & Lifecycle
+- Quotes have two lifecycle states: "active" (only one active quote per user at a time) and "saved"
+- Users can create new quotes (automatically becomes active)
+- Users can save active quotes (moves to saved state, allows new active quote)
+- Users can load saved quotes (becomes active, previous active becomes saved)
+- Users can delete saved quotes
+- Quotes are user-scoped (persist across sessions, tied to authenticated user)
+- Quote metadata: creation timestamp, last update timestamp, owner (user identifier)
 
 #### Priority: **HIGH** (Core Feature)
 
@@ -395,7 +428,7 @@ Enable users to predict future costs based on historical trends.
 ### 4.2 Navigation
 
 - **Tab-based navigation**: Main features accessible via tabs
-  - Quotes (can be accessed without authentication for catalog browsing)
+  - Quotes (can access catalog without authentication, but saving quotes requires authentication)
   - Consumption (requires authentication)
   - Cost (requires authentication)
   - Trends (requires authentication)
@@ -411,6 +444,12 @@ Enable users to predict future costs based on historical trends.
 - **Catalog Access**: Can be accessed without authentication
   - Users can browse catalogs and build quotes without logging in
   - Authentication required only for saving quotes or accessing authenticated features
+- **Quote List View**: Display list of saved quotes with name, creation date, last update, item count
+- **Quote Actions**: Save, Load, Delete buttons for quote management
+- **Active Quote Indicator**: Visual indicator showing which quote is currently active
+- **New Quote Button**: Create new quote (makes it active, saves previous active quote)
+- **Quote Name Editor**: Allow users to name their quotes
+- **Quote Metadata Display**: Show created date, last updated, owner
 - **Loading Indicators**: Show during async operations
 - **Error Messages**: User-friendly, clear error messages
 - **Export Buttons**: CSV, JSON, PDF, ODS export options
@@ -491,11 +530,17 @@ All non-functional requirements must be met:
 - Session management
 - Security implementation
 
-### Phase 2: Core Features - Quote Building
-- Catalog integration
-- Quote creation and management
-- Cost calculation
-- Export functionality
+### Phase 2: Core Features - Quote Building ✅ **COMPLETED & VALIDATED**
+- Catalog integration (ReadPublicCatalog API, unauthenticated access)
+- Quote creation and management (CRUD operations)
+- Quote lifecycle management (active/saved states)
+- Database persistence (SQLite with SQLAlchemy)
+- User and session management (database-backed)
+- Quote selector UI with auto-save/auto-load
+- Active quote deletion with automatic replacement
+- Cost calculation (commitment discounts, global discounts)
+- Export functionality (CSV export)
+- **Status**: All Phase 2 deliverables completed and validated
 
 ### Phase 3: Core Features - Consumption History
 - Consumption query and display

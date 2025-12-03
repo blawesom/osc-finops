@@ -252,6 +252,355 @@ body {
     color: var(--text-color);
 }
 
+/* Quote Builder Styles */
+.quote-section {
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.quote-section:last-child {
+    border-bottom: none;
+}
+
+.quote-section h2 {
+    margin-bottom: var(--spacing-md);
+    color: var(--text-color);
+    font-size: 1.25rem;
+}
+
+.resource-selection-form {
+    background-color: #f8f9fa;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    align-items: end;
+}
+
+.unit-price-display {
+    padding: var(--spacing-sm);
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    color: var(--primary-color);
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.quote-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--bg-color);
+}
+
+.quote-table thead {
+    background-color: #f8f9fa;
+}
+
+.quote-table th {
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.quote-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.quote-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.empty-message {
+    text-align: center;
+    color: var(--secondary-color);
+    padding: var(--spacing-lg);
+    font-style: italic;
+}
+
+.btn-remove {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--danger-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.btn-remove:hover {
+    background-color: #c82333;
+}
+
+.quote-config {
+    background-color: #f8f9fa;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+}
+
+.quote-summary-content {
+    background-color: #f8f9fa;
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius);
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.summary-row:last-child {
+    border-bottom: none;
+}
+
+.summary-total {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 2px solid var(--primary-color);
+}
+
+.loading-message {
+    padding: var(--spacing-md);
+    text-align: center;
+    color: var(--info-color);
+    background-color: #d1ecf1;
+    border: 1px solid var(--info-color);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Quote Management Styles */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge-active {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.badge-saved {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+/* Quote Selector */
+.quote-selector-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background-color: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-md);
+}
+
+.quote-selector-container label {
+    font-weight: 500;
+    margin-right: var(--spacing-xs);
+}
+
+.quote-selector {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    background-color: white;
+}
+
+.quote-selector:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Quote Header */
+.quote-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.quote-header-info {
+    flex: 1;
+}
+
+.quote-header-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+/* Quotes List */
+.quotes-list {
+    background-color: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+}
+
+.quote-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s ease;
+}
+
+.quote-list-item:hover {
+    background-color: #e9ecef;
+}
+
+.quote-list-item:last-child {
+    border-bottom: none;
+}
+
+.quote-list-item-active {
+    background-color: #e7f3ff;
+    border-left: 3px solid var(--primary-color);
+}
+
+.quote-list-item-active:hover {
+    background-color: #d0e7ff;
+}
+
+.quote-list-info {
+    flex: 1;
+}
+
+.quote-list-info strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-color);
+}
+
+.quote-list-info small {
+    color: var(--secondary-color);
+    font-size: 12px;
+}
+
+.quote-list-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    align-items: center;
+}
+
+.btn-small {
+    padding: 4px 12px;
+    font-size: 12px;
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    position: relative;
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: var(--spacing-md);
+}
+
+.modal-content p {
+    margin-bottom: var(--spacing-md);
+    color: var(--secondary-color);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+}
+
+.form-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.message.success {
+    background-color: var(--success-color);
+    color: white;
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-md);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .login-container {
@@ -267,6 +616,19 @@ body {
     
     .tab-navigation {
         overflow-x: auto;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .quote-table {
+        font-size: 12px;
+    }
+    
+    .quote-table th,
+    .quote-table td {
+        padding: var(--spacing-xs);
     }
 }
 

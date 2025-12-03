@@ -68,7 +68,16 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 4. Verify Installation
+### 4. Database Setup
+
+The application uses SQLite by default (no additional setup required). The database file `osc_finops.db` will be created automatically in the project root on first run.
+
+For production, you can switch to PostgreSQL by setting the `DATABASE_URL` environment variable:
+```bash
+export DATABASE_URL="postgresql://user:password@localhost/osc_finops"
+```
+
+### 5. Verify Installation
 
 ```bash
 # Check Python version (should be 3.8+)
@@ -201,7 +210,7 @@ For detailed testing instructions, see [tests/TESTING.md](tests/TESTING.md).
 #### Quote Building
 1. Navigate to the "Quotes" tab (no login required for catalog browsing)
 2. Select a region (cloudgouv-eu-west-1, eu-west-2, us-west-1, or us-east-2)
-3. Choose a resource from the catalog (ReadCatalog API works without authentication)
+3. Choose a resource from the catalog (ReadPublicCatalog API works without authentication)
 4. Configure resource parameters
 5. Add to quote
 6. Apply discounts and duration
@@ -332,7 +341,7 @@ mypy backend/
 - **HTTPS required** in production environments
 - **Region selection is mandatory** when providing credentials
 - **Supported regions**: cloudgouv-eu-west-1, eu-west-2, us-west-1, us-east-2
-- **ReadCatalog API does not require authentication** - catalog can be accessed without credentials
+- **ReadPublicCatalog API does not require authentication** - catalog can be accessed without credentials
 
 ## References
 
@@ -362,12 +371,10 @@ For issues, questions, or contributions, please contact the development team.
 See the implementation plan for detailed phases:
 - Phase 0: Project Foundation & Documentation ✅ **COMPLETED & VALIDATED**
 - Phase 1: Authentication & Session Management ✅ **COMPLETED & VALIDATED**
-- Phase 2: Catalog Integration & Quote Building (Next)
-- Phase 2: Catalog Integration & Quote Building
+- Phase 2: Catalog Integration & Quote Building ✅ **COMPLETED & VALIDATED**
 - Phase 3: Consumption History
 - Phase 4: Current Cost Evaluation
 - Phase 5: Trend Analysis & Cost Drift
 - Phase 6: Budget Management
 - Phase 7: Cost Allocation & Multi-Account Support
 - Phase 8: Polish, Testing & Documentation
-

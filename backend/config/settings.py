@@ -29,6 +29,16 @@ SERVER_PORT: int = int(os.getenv("SERVER_PORT", "5000"))
 # CORS configuration
 CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS", "*").split(",")
 
+# Cache configuration
+CATALOG_CACHE_TTL: int = int(os.getenv("CATALOG_CACHE_TTL", "86400"))  # 24 hours in seconds
+CONSUMPTION_CACHE_TTL: int = int(os.getenv("CONSUMPTION_CACHE_TTL", "3600"))  # 1 hour in seconds
+
 # Logging configuration
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+
+# Database configuration
+DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///osc_finops.db")
+DATABASE_POOL_SIZE: int = int(os.getenv("DATABASE_POOL_SIZE", "5"))
+DATABASE_MAX_OVERFLOW: int = int(os.getenv("DATABASE_MAX_OVERFLOW", "10"))
+DATABASE_ECHO: bool = os.getenv("DATABASE_ECHO", "0") == "1"
 

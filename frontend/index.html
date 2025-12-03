@@ -68,8 +68,210 @@
             <main class="main-content">
                 <div id="tab-content">
                     <div class="tab-panel active" id="tab-quotes">
-                        <h2>Quote Building</h2>
-                        <p>Quote building functionality will be implemented in Phase 2.</p>
+                        <div id="quote-loading" class="loading-message" style="display: none;">Loading...</div>
+                        <div id="quote-error" class="error-message" style="display: none;"></div>
+                        
+                        <!-- Quote Selector -->
+                        <section class="quote-section">
+                            <div class="quote-selector-container">
+                                <label for="quote-selector">Current Quote:</label>
+                                <select id="quote-selector" class="quote-selector">
+                                    <option value="">Loading quotes...</option>
+                                </select>
+                                <button class="btn btn-small" onclick="QuoteBuilder.showNewQuoteModal()">New Quote</button>
+                            </div>
+                        </section>
+                        
+                        <!-- Quote Management Header -->
+                        <section class="quote-section">
+                            <div class="quote-header">
+                                <div class="quote-header-info">
+                                    <h2 id="quote-name-display" style="margin: 0; display: inline;">My Quote</h2>
+                                    <span id="active-quote-indicator" class="badge badge-active" style="display: none; margin-left: 8px;">Active</span>
+                                    <div id="quote-metadata" style="margin-top: 4px;">
+                                        <small style="color: #666;"></small>
+                                    </div>
+                                </div>
+                                <div class="quote-header-actions">
+                                    <button class="btn btn-small" onclick="QuoteBuilder.showRenameQuoteModal()">Rename</button>
+                                    <button class="btn btn-small btn-danger" onclick="QuoteBuilder.showDeleteCurrentQuoteModal()">Delete</button>
+                                </div>
+                            </div>
+                        </section>
+                        
+
+                        
+                        <!-- Resource Selection -->
+                        <section class="quote-section">
+                            <h2>Add Resource to Quote</h2>
+                            <div class="resource-selection-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="quote-region">Region</label>
+                                        <select id="quote-region">
+                                            <option value="cloudgouv-eu-west-1">cloudgouv-eu-west-1</option>
+                                            <option value="eu-west-2" selected>eu-west-2</option>
+                                            <option value="us-west-1">us-west-1</option>
+                                            <option value="us-east-2">us-east-2</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="quote-category">Category</label>
+                                        <select id="quote-category">
+                                            <option value="all" selected>All Categories</option>
+                                            <option value="Compute">Compute</option>
+                                            <option value="Storage">Storage</option>
+                                            <option value="Network">Network</option>
+                                            <option value="Licence">Licence</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="quote-resource">Resource</label>
+                                        <select id="quote-resource">
+                                            <option value="">Select a resource...</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="resource-quantity">Quantity</label>
+                                        <input type="number" id="resource-quantity" min="1" value="1" step="1">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>Unit Price</label>
+                                        <div id="resource-unit-price" class="unit-price-display">-</div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>&nbsp;</label>
+                                        <button id="add-resource-btn" class="btn btn-primary" disabled>Add to Quote</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        <!-- Quote Items -->
+                        <section class="quote-section">
+                            <h2>Quote Items</h2>
+                            <div class="table-container">
+                                <table class="quote-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Resource Name</th>
+                                            <th>Region</th>
+                                            <th>Quantity</th>
+                                            <th>Unit Price</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="quote-items-body">
+                                        <tr>
+                                            <td colspan="5" class="empty-message">No items in quote. Add resources to get started.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                        
+                        <!-- Quote Configuration -->
+                        <section class="quote-section">
+                            <h2>Quote Configuration</h2>
+                            <div class="quote-config">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="quote-duration">Duration</label>
+                                        <input type="number" id="quote-duration" min="1" value="1" step="1">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="quote-duration-unit">Duration Unit</label>
+                                        <select id="quote-duration-unit">
+                                            <option value="hours">Hours</option>
+                                            <option value="days">Days</option>
+                                            <option value="weeks">Weeks</option>
+                                            <option value="months" selected>Months</option>
+                                            <option value="years">Years</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="quote-global-discount">Global Discount (%)</label>
+                                        <input type="number" id="quote-global-discount" min="0" max="100" value="0" step="0.1">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="quote-commitment">Commitment Period</label>
+                                        <select id="quote-commitment">
+                                            <option value="none" selected>None</option>
+                                            <option value="1month">1 Month</option>
+                                            <option value="1year">1 Year</option>
+                                            <option value="3years">3 Years</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        <!-- Quote Summary -->
+                        <section class="quote-section">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h2 style="margin: 0;">Cost Summary</h2>
+                                <button id="export-csv-btn" class="btn btn-secondary" style="display: none;">Export to CSV</button>
+                            </div>
+                            <div id="quote-summary-content" class="quote-summary-content">
+                                <p class="empty-message">Add resources to see cost summary</p>
+                            </div>
+                        </section>
+                        
+                        <!-- New Quote Modal -->
+                        <div id="new-quote-modal" class="modal" style="display: none;">
+                            <div class="modal-overlay" onclick="QuoteBuilder.hideNewQuoteModal()"></div>
+                            <div class="modal-content">
+                                <h3>Create New Quote</h3>
+                                <p>The current quote will be automatically saved with its current name.</p>
+                                <div class="form-group">
+                                    <label for="new-quote-name-input">Quote Name</label>
+                                    <input type="text" id="new-quote-name-input" placeholder="Enter quote name" class="form-input">
+                                </div>
+                                <div class="modal-actions">
+                                    <button class="btn btn-secondary" onclick="QuoteBuilder.hideNewQuoteModal()">Cancel</button>
+                                    <button class="btn btn-primary" onclick="QuoteBuilder.createNewQuoteFromModal()">Create</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Rename Quote Modal -->
+                        <div id="rename-quote-modal" class="modal" style="display: none;">
+                            <div class="modal-overlay" onclick="QuoteBuilder.hideRenameQuoteModal()"></div>
+                            <div class="modal-content">
+                                <h3>Rename Quote</h3>
+                                <p>Are you sure you want to rename this quote?</p>
+                                <div class="form-group">
+                                    <label for="rename-quote-name-input">New Quote Name</label>
+                                    <input type="text" id="rename-quote-name-input" placeholder="Enter new quote name" class="form-input">
+                                </div>
+                                <div class="modal-actions">
+                                    <button class="btn btn-secondary" onclick="QuoteBuilder.hideRenameQuoteModal()">Cancel</button>
+                                    <button class="btn btn-primary" onclick="QuoteBuilder.confirmRenameQuote()">Rename</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Delete Current Quote Modal -->
+                        <div id="delete-current-quote-modal" class="modal" style="display: none;">
+                            <div class="modal-overlay" onclick="QuoteBuilder.hideDeleteCurrentQuoteModal()"></div>
+                            <div class="modal-content">
+                                <h3>Delete Quote</h3>
+                                <p>Are you sure you want to delete "<span id="delete-quote-name-display"></span>"?</p>
+                                <p style="color: var(--danger-color); font-weight: bold;">This action cannot be undone.</p>
+                                <div class="modal-actions">
+                                    <button class="btn btn-secondary" onclick="QuoteBuilder.hideDeleteCurrentQuoteModal()">Cancel</button>
+                                    <button class="btn btn-danger" onclick="QuoteBuilder.confirmDeleteCurrentQuote()">Delete</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="tab-panel" id="tab-consumption" style="display: none;">
@@ -98,6 +300,22 @@
     
     <script src="/js/auth.js"></script>
     <script src="/js/app.js"></script>
+    <script src="/js/catalog.js"></script>
+    <script src="/js/quote.js"></script>
+    <script src="/js/quote-builder.js"></script>
+    <script>
+        // Initialize quote builder when quotes tab is shown
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wait for auth to complete, then init quote builder
+            // Only init if not already initialized (prevents duplicate event listeners)
+            if (document.getElementById('main-app').style.display !== 'none' && !QuoteBuilder.initialized) {
+                QuoteBuilder.init();
+            }
+            
+            // Also init when switching to quotes tab (handled by App.switchTab now)
+            // Removed duplicate initialization here to prevent multiple event listeners
+        });
+    </script>
 </body>
 </html>
 

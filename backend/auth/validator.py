@@ -21,20 +21,21 @@ def validate_region(region: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def validate_credentials(access_key: str, secret_key: str, region: str) -> Tuple[bool, Optional[str]]:
+def validate_credentials(access_key: str, secret_key: str, region: str) -> Tuple[bool, Optional[str], Optional[str]]:
     """
-    Validate credentials by making a test API call.
+    Validate credentials by making a test API call and retrieve account_id.
     
     Returns:
-        Tuple of (is_valid, error_message)
+        Tuple of (is_valid, error_message, account_id)
+        account_id is None if validation fails
     """
     if not access_key or not secret_key:
-        return False, "Access key and secret key are required"
+        return False, "Access key and secret key are required", None
     
     # Validate region first
     is_valid_region, region_error = validate_region(region)
     if not is_valid_region:
-        return False, region_error
+        return False, region_error, None
     
     try:
         # Create gateway with credentials
@@ -44,19 +45,30 @@ def validate_credentials(access_key: str, secret_key: str, region: str) -> Tuple
             region=region
         )
         
-        # Make a test API call to validate credentials
-        # Using ReadAccounts as a lightweight test (no parameters needed)
-        gateway.ReadAccounts()
+        # Make ReadAccounts API call to validate credentials and get account_id
+        response = gateway.ReadAccounts()
         
-        return True, None
+        # Extract account_id from response
+        account_id = None
+        if response and response.get('Accounts'):
+            accounts = response.get('Accounts')
+            if accounts and len(accounts) > 0:
+                account = accounts[0]
+                if account.get('AccountId'):
+                    account_id = account.get('AccountId')
+        
+        if not account_id:
+            return False, "Could not retrieve account information", None
+        
+        return True, None, account_id
     
     except Exception as e:
         # Don't expose detailed error messages that might leak information
         error_msg = str(e)
         if "InvalidAccessKeyId" in error_msg or "SignatureDoesNotMatch" in error_msg:
-            return False, "Invalid credentials for the selected region"
+            return False, "Invalid credentials for the selected region", None
         elif "RequestLimitExceeded" in error_msg:
-            return False, "API rate limit exceeded. Please try again later"
+            return False, "API rate limit exceeded. Please try again later", None
         else:
-            return False, f"Authentication failed: {error_msg}"
+            return False, f"Authentication failed: {error_msg}", None
 

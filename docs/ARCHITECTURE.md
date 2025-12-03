@@ -41,6 +41,9 @@ OSC-FinOps is a comprehensive FinOps service designed for Outscale customers, pr
 │  │  catalog_service  quote_service  consumption_service │   │
 │  │  cost_service  trend_service  drift_service         │   │
 │  │  budget_service  allocation_service                 │   │
+│  │  Quote Service: CRUD, lifecycle (active/saved),    │   │
+│  │  ownership verification, user-scoped persistence,   │   │
+│  │  auto-save on switch, auto-load on delete          │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                            │                                 │
 │  ┌─────────────────────────────────────────────────────┐   │
@@ -59,11 +62,11 @@ OSC-FinOps is a comprehensive FinOps service designed for Outscale customers, pr
                             │
 ┌─────────────────────────────────────────────────────────────┐
 │                  Outscale API (via SDK)                     │
-│                                                               │
-│  ReadCatalog  ReadConsumptionAccount  ReadAccounts          │
-│  ReadVms  ReadVolumes  ReadSnapshots  ReadPublicIps        │
-│  ReadNatServices  ReadLoadBalancers  ReadVpns              │
-│  ReadOosBuckets  ReadSubregions                            │
+│                                                             │
+│  ReadPublicCatalog  ReadConsumptionAccount  ReadAccounts    │
+│  ReadVms  ReadVolumes  ReadSnapshots  ReadPublicIps         │
+│  ReadNatServices  ReadLoadBalancers  ReadVpns               │
+│  ReadOosBuckets  ReadSubregions                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -71,7 +74,7 @@ OSC-FinOps is a comprehensive FinOps service designed for Outscale customers, pr
 
 #### Frontend Components
 - **Auth Module** (`frontend/js/auth.js`): Handles user authentication, session management, and credential input
-- **Quote Module** (`frontend/js/quote.js`): Quote building interface with resource selection and cost calculation
+- **Quote Module** (`frontend/js/quote.js`, `frontend/js/quote-builder.js`): Quote building interface with resource selection, cost calculation, and quote management (create, save, load, delete)
 - **Consumption Module** (`frontend/js/consumption.js`): Consumption history display with filtering and aggregation
 - **Cost Module** (`frontend/js/cost.js`): Current cost evaluation and resource cost breakdown
 - **Trends Module** (`frontend/js/trends.js`): Trend analysis and visualization
@@ -97,7 +100,7 @@ User → Frontend (Login Form)
   → Backend Auth Module
   → Validate region (must be: cloudgouv-eu-west-1, eu-west-2, us-west-1, us-east-2)
   → Validate credentials via osc-sdk-python (test API call for selected region)
-  → Create session (in-memory, 30min timeout) with region
+  → Create session (database-backed, 30min timeout) with region
   → Return session_id
   → Frontend stores session_id
   → Subsequent requests include session_id (region stored in session)
@@ -112,19 +115,47 @@ User → Frontend (Quote Module)
   → GET /api/catalog?region=eu-west-2
   → Backend Catalog Service
   → Check cache (24h TTL)
-  → If miss: Call osc-sdk-python ReadCatalog API (NO AUTHENTICATION REQUIRED)
+  → If miss: Call ReadPublicCatalog API via requests.post (NO AUTHENTICATION REQUIRED)
   → Cache and return catalog
   → Frontend displays resources
   → User selects resource, configures parameters
-  → POST /api/quotes {items[], duration, discounts}
+  → POST /api/quotes (create new quote - becomes active)
   → Backend Quote Service
+  → Create quote with "active" state, set owner from session
   → Calculate costs (quantity × unit_price × duration)
   → Apply commitment discounts
   → Apply global discount
   → Return quote with total cost
+  → User can save quote: PUT /api/quotes/{id} {status: "saved"}
+  → User can load quote: GET /api/quotes/{id} (becomes active)
+  → User can list quotes: GET /api/quotes (list all user's quotes)
+  → User can delete quote: DELETE /api/quotes/{id}
 ```
 
-**Note**: ReadCatalog API does not require authentication. Catalog can be accessed without user credentials. However, authenticated features (quotes, consumption, cost evaluation) require valid credentials with region selection.
+**Note**: ReadPublicCatalog API does not require authentication. Catalog can be accessed without user credentials. However, authenticated features (quotes, consumption, cost evaluation) require valid credentials with region selection.
+
+### 3.2.1 Quote Management Flow
+
+```
+User → Frontend (Quote Management)
+  → GET /api/quotes (list all user's quotes)
+  → Backend Quote Service
+  → Filter quotes by owner (from session)
+  → Return list of quotes with metadata
+  → Frontend displays quote list
+  → User selects quote to load
+  → GET /api/quotes/{id}
+  → If saved quote loaded, it becomes active (previous active saved automatically)
+  → User can delete quotes (active or saved)
+  → If active quote deleted, next saved quote automatically loaded
+  → If no saved quotes, new empty quote created
+  → Backend Quote Service
+  → Verify ownership
+  → Set quote status to "active"
+  → Set previous active quote to "saved"
+  → Return quote data
+  → Frontend loads quote into builder
+```
 
 ### 3.3 Consumption History Flow
 
@@ -172,7 +203,7 @@ User → Frontend (Cost Module)
 - No logging of credentials or sensitive data
 
 **API Authentication**:
-- **ReadCatalog API does not require authentication** - can be called without credentials
+- **ReadPublicCatalog API does not require authentication** - can be called without credentials
 - All other Outscale API calls use OSC4-HMAC-SHA256 signature method
 - Implemented via osc-sdk-python SDK (no manual signature generation)
 - Credentials and region retrieved from session for each authenticated API call
@@ -350,15 +381,44 @@ User → Frontend (Cost Module)
 ## 9. Scalability Considerations
 
 ### 9.1 Current Design (MVP)
-- In-memory session storage (single server)
-- In-memory caching (single server)
+- SQLite database for persistent storage (users, sessions, quotes)
+- Database-backed session storage
+- In-memory caching for catalogs and consumption (single server)
 - Synchronous API calls
-- No database (stateless design)
+- SQLAlchemy ORM for database operations
 
-### 9.2 Future Scalability Options
-- **Session Storage**: Move to Redis for multi-server support
+### 9.2 Database Schema
+
+**Users Table**:
+- `user_id` (UUID, PRIMARY KEY)
+- `account_id` (VARCHAR, UNIQUE, NOT NULL) - Outscale account ID (unique identifier)
+- `access_key` (VARCHAR, NOT NULL) - Outscale access key (non-unique)
+- `created_at`, `last_login_at`, `is_active`
+
+**Sessions Table**:
+- `session_id` (UUID, PRIMARY KEY)
+- `user_id` (UUID, FOREIGN KEY → users.user_id)
+- `access_key`, `secret_key`, `region`
+- `created_at`, `last_activity`, `expires_at`
+
+**Quotes Table**:
+- `quote_id` (UUID, PRIMARY KEY)
+- `user_id` (UUID, FOREIGN KEY → users.user_id)
+- `name`, `status` ('active' or 'saved')
+- `duration`, `duration_unit`, `commitment_period`, `global_discount_percent`
+- `created_at`, `updated_at`
+
+**Quote Items Table**:
+- `item_id` (UUID, PRIMARY KEY)
+- `quote_id` (UUID, FOREIGN KEY → quotes.quote_id, ON DELETE CASCADE)
+- `resource_name`, `resource_type`, `resource_data` (JSON), `quantity`, `unit_price`
+- `region`, `parameters` (JSON), `iops_unit_price`, `display_order`
+- `created_at`, `updated_at`
+
+### 9.3 Future Scalability Options
+- **Session Storage**: Move to Redis for multi-server support (optional)
 - **Caching**: Move to Redis for shared cache
-- **Database**: Add PostgreSQL for persistent data (budgets, saved quotes)
+- **Database**: Migrate from SQLite to PostgreSQL for production
 - **Async Processing**: Move to FastAPI with async/await for better concurrency
 - **Load Balancing**: Add load balancer for multiple backend instances
 
@@ -411,7 +471,7 @@ User → Frontend (Cost Module)
 - **SDK**: osc-sdk-python (v0.38.0+)
 - **Authentication**: OSC4-HMAC-SHA256 (handled by SDK)
 - **APIs Used**:
-  - `ReadCatalog`: Catalog prices (**NO AUTHENTICATION REQUIRED**)
+  - `ReadPublicCatalog`: Catalog prices (**NO AUTHENTICATION REQUIRED**)
   - `ReadConsumptionAccount`: Consumption history (requires authentication)
   - `ReadAccounts`: Account information (requires authentication)
   - `ReadVms`, `ReadVolumes`, `ReadSnapshots`, etc.: Current resources (requires authentication)
@@ -419,17 +479,19 @@ User → Frontend (Cost Module)
 
 ### 12.2 SDK Usage Pattern
 
-**For ReadCatalog (No Authentication)**:
+**For ReadPublicCatalog (No Authentication)**:
 ```python
-from osc_sdk_python import OutscaleGateway
+import requests
+import json
 
-# ReadCatalog can be called without credentials
-gateway = OutscaleGateway(
-    region='eu-west-2'  # Region only, no credentials needed
+# ReadPublicCatalog can be called without credentials using direct HTTP request
+url = "https://api.eu-west-2.outscale.com/api/v1/ReadPublicCatalog"
+response = requests.post(
+    url,
+    headers={'Content-Type': 'application/json'},
+    data=json.dumps({})
 )
-
-# Make API call (no authentication required)
-response = gateway.ReadCatalog(ReadCatalogRequest())
+catalog_data = response.json()
 ```
 
 **For Authenticated APIs**:
@@ -496,10 +558,110 @@ response = gateway.ReadConsumptionAccount(ReadConsumptionAccountRequest())
 - Multi-step operations
 - Error scenarios
 
-## 16. Future Enhancements
+## 16. Data Models
+
+### 16.1 Quote Data Model
+
+```
+Quote:
+  - quote_id: UUID (unique identifier)
+  - name: string (user-defined quote name)
+  - status: "active" | "saved" (lifecycle state)
+  - owner: string (user identifier from session)
+  - items: array of quote items
+    - id: UUID (item identifier)
+    - resource_name: string
+    - resource_type: string
+    - resource_data: object (catalog entry data)
+    - quantity: float
+    - unit_price: float
+    - region: string
+    - parameters: object (optional resource-specific parameters)
+  - duration: float
+  - duration_unit: string ("hours", "days", "weeks", "months", "years")
+  - commitment_period: string | null ("1month", "1year", "3years", or null)
+  - global_discount_percent: float (0-100)
+  - created_at: datetime (ISO format)
+  - updated_at: datetime (ISO format)
+```
+
+### 16.2 Quote Status Transitions
+
+- **New quote created** → status: "active"
+- **Save active quote** → status: "saved"
+- **Load saved quote** → status: "active" (previous active quote becomes "saved")
+- **Delete active quote** → next saved quote automatically loaded (if available), otherwise new quote created
+- **Delete saved quote** → quote removed, no replacement
+- **Only one "active" quote per user at a time**
+
+### 16.3 Quote Ownership
+
+- Quotes are user-scoped (tied to authenticated user)
+- Owner identifier derived from session (access_key or session_id)
+- All quote operations verify ownership before execution
+- Users can only access their own quotes
+
+## 17. API Endpoints Reference
+
+### 17.1 Quote API Endpoints
+
+**Create Quote**:
+- `POST /api/quotes`
+- **Auth**: Required
+- **Request Body**: `{ "name": "Quote Name" }`
+- **Response**: Quote object with "active" status
+- **Behavior**: Creates new quote, sets as active, saves previous active quote if exists
+
+**List Quotes**:
+- `GET /api/quotes`
+- **Auth**: Required
+- **Response**: Array of quote summaries (filtered by owner)
+- **Fields**: quote_id, name, status, item_count, created_at, updated_at
+
+**Get Quote**:
+- `GET /api/quotes/{id}`
+- **Auth**: Required
+- **Response**: Full quote object with calculation
+- **Behavior**: Verifies ownership, if loading saved quote, sets to active and saves previous active
+
+**Update Quote**:
+- `PUT /api/quotes/{id}`
+- **Auth**: Required
+- **Request Body**: `{ "name": "...", "status": "saved", "duration": ..., "duration_unit": "...", "commitment_period": "...", "global_discount_percent": ... }`
+- **Response**: Updated quote object
+- **Behavior**: Verifies ownership, updates fields, manages status transitions
+
+**Delete Quote**:
+- `DELETE /api/quotes/{id}`
+- **Auth**: Required
+- **Response**: Success message
+- **Behavior**: Verifies ownership, only allows deletion of saved quotes (not active)
+
+**Add Item to Quote**:
+- `POST /api/quotes/{id}/items`
+- **Auth**: Required
+- **Request Body**: Quote item object
+- **Response**: Updated quote object
+
+**Remove Item from Quote**:
+- `DELETE /api/quotes/{id}/items/{item_id}`
+- **Auth**: Required
+- **Response**: Updated quote object
+
+**Calculate Quote**:
+- `GET /api/quotes/{id}/calculate`
+- **Auth**: Required
+- **Response**: Calculation object with totals and breakdown
+
+**Export Quote to CSV**:
+- `GET /api/quotes/{id}/export/csv`
+- **Auth**: Required
+- **Response**: CSV file download
+
+## 18. Future Enhancements
 
 - Multi-user support with role-based access
-- Persistent storage for budgets and saved quotes
+- Persistent storage for budgets and saved quotes (database)
 - Real-time cost updates (WebSocket)
 - Advanced forecasting with ML
 - Cost optimization recommendations
