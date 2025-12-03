@@ -634,8 +634,9 @@ Quote:
 **Delete Quote**:
 - `DELETE /api/quotes/{id}`
 - **Auth**: Required
-- **Response**: Success message
-- **Behavior**: Verifies ownership, only allows deletion of saved quotes (not active)
+- **Response**: Success message with optional `replacement_quote` field
+- **Behavior**: Verifies ownership, deletes quote (active or saved)
+- **Replacement**: If deleting active quote, returns next saved quote (if available) and makes it active
 
 **Add Item to Quote**:
 - `POST /api/quotes/{id}/items`
