@@ -48,7 +48,8 @@ OSC-FinOps is a comprehensive FinOps service designed for Outscale customers, pr
 │                            │                                 │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │          Authentication & Session Management         │   │
-│  │  (In-memory sessions, OSC4-HMAC-SHA256)            │   │
+│  │  (Database-backed sessions, OSC4-HMAC-SHA256)
+│  │  (SQLite/PostgreSQL with SQLAlchemy ORM)            │   │            │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                            │                                 │
 │  ┌─────────────────────────────────────────────────────┐   │
