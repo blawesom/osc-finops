@@ -174,15 +174,16 @@ User → Frontend (Consumption Module)
 ### 3.4 Current Cost Evaluation Flow
 
 ```
-User → Frontend (Cost Module)
-  → GET /api/cost/current?region=eu-west-2&format=json
-  → Backend Cost Service
-  → Fetch current resources (ReadVms, ReadVolumes, etc.)
-  → Fetch catalog for pricing
-  → Correlate resources with catalog entries
-  → Calculate cost per resource
-  → Aggregate by resource type
-  → Return cost breakdown
+User → Frontend (Cost Tab)
+  → GET /api/cost {region, tags, include_oos, format, force_refresh}
+    → Backend (Cost API)
+      → Auth Middleware (require_auth)
+        → Cost Service (get_current_costs)
+          → OSC SDK (ReadVms, ReadVolumes, ReadSnapshots, ReadPublicIps, ReadNatServices, ReadLoadBalancers, ReadVpns, ReadOosBuckets)
+          → Catalog Service (get_catalog)
+          → Cost Calculation Logic (calculate_vm_price, calculate_volume_cost, etc.)
+          → Cost Cache (5m TTL)
+        → Response (JSON/CSV/Human)
 ```
 
 ## 4. Security Architecture

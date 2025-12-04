@@ -269,17 +269,20 @@ Enable users to evaluate current costs of used resources by fetching live resour
 - **US-3.4**: As an accountant, I want to filter costs by tags so I can allocate costs
 
 #### Acceptance Criteria
-- [ ] System fetches current resources (VMs, Volumes, Snapshots, Public IPs, NAT Services, Load Balancers, VPNs, OOS buckets)
-- [ ] System calculates cost per hour, per month, per year
-- [ ] System correlates resources with catalog prices
-- [ ] Users can filter resources by tags
-- [ ] System displays cost breakdown by resource type
-- [ ] System supports multiple output formats (human-readable, JSON, CSV, ODS)
-- [ ] System shows individual resource costs with specifications
-- [ ] System displays cost per resource category
-- [ ] System handles dedicated instances and flexible GPUs
-- [ ] System calculates BSU volume IOPS costs
-- [ ] Query performance < 10 seconds for < 1000 resources
+- [x] System fetches current resources (VMs, Volumes, Snapshots, Public IPs, NAT Services, Load Balancers, VPNs, OOS buckets)
+- [x] System calculates cost per hour, per month, per year
+- [x] System correlates resources with catalog prices
+- [x] Users can filter resources by tags
+- [x] System displays cost breakdown by resource type
+- [x] System supports multiple output formats (human-readable, JSON, CSV, ODS)
+- [x] System shows individual resource costs with specifications
+- [x] System displays cost per resource category
+- [x] System handles dedicated instances and flexible GPUs
+- [x] System calculates BSU volume IOPS costs
+- [x] Query performance < 10 seconds for < 1000 resources
+- [x] OOS bucket calculation is optional (off by default)
+- [x] Catalog price lookup matches actual catalog structure (Type, Service, Operation fields)
+- [x] Cost calculations use correct pricing units (monthly for volumes/snapshots, hourly for VMs)
 
 #### Technical Requirements
 - Integration with osc-sdk-python resource APIs (ReadVms, ReadVolumes, etc.)
@@ -554,10 +557,16 @@ All non-functional requirements must be met:
 - Total cost calculation and display
 - **Status**: All Phase 3 deliverables completed and validated
 
-### Phase 4: Core Features - Current Cost Evaluation
-- Resource cost evaluation
-- Catalog correlation
-- Export functionality
+### Phase 4: Core Features - Current Cost Evaluation ✅ **COMPLETED & VALIDATED**
+- Resource cost evaluation (VMs, Volumes, Snapshots, Public IPs, NAT Services, Load Balancers, VPNs, OOS buckets)
+- Catalog correlation with correct price lookup (matching actual catalog structure)
+- Cost calculation per hour, month, and year
+- Tag-based filtering
+- Cost breakdown by resource type and category
+- Export functionality (human-readable, JSON, CSV, ODS)
+- OOS bucket calculation (optional, off by default)
+- Cost caching (5m TTL)
+- **Status**: All Phase 4 deliverables completed and validated
 
 ### Phase 5: Advanced Features - Trends & Drift
 - Trend analysis
