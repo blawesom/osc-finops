@@ -762,3 +762,94 @@ body {
     text-align: right;
     min-width: 100px;
 }
+
+/* Cost Evaluation Styles */
+.cost-filters {
+    background-color: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.cost-filters h3 {
+    margin-bottom: var(--spacing-md);
+    color: var(--text-color);
+}
+
+.cost-filters .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.cost-filters .form-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: flex-end;
+    margin-top: var(--spacing-md);
+}
+
+.cost-summary-cards {
+    margin-bottom: var(--spacing-xl);
+}
+
+.cost-summary-cards h3 {
+    margin-bottom: var(--spacing-md);
+    color: var(--text-color);
+}
+
+.cost-data {
+    margin-bottom: var(--spacing-xl);
+}
+
+.cost-data h3 {
+    margin-bottom: var(--spacing-md);
+    color: var(--text-color);
+}
+
+.cost-breakdown {
+    margin-bottom: var(--spacing-xl);
+}
+
+.breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-xl);
+}
+
+.breakdown-section h3 {
+    margin-bottom: var(--spacing-md);
+    color: var(--text-color);
+}
+
+.breakdown-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.breakdown-list li {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.breakdown-list li:last-child {
+    border-bottom: none;
+}
+
+.breakdown-list li span:first-child {
+    font-weight: 500;
+}
+
+.breakdown-list li span:last-child {
+    color: var(--primary-color);
+    font-weight: bold;
+}

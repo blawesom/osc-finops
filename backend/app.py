@@ -14,6 +14,7 @@ from backend.api.auth import auth_bp
 from backend.api.catalog import catalog_bp
 from backend.api.quote import quote_bp
 from backend.api.consumption import consumption_bp
+from backend.api.cost import cost_bp
 from backend.utils.errors import APIError
 from backend.database import init_db, close_db
 
@@ -38,6 +39,7 @@ def create_app() -> Flask:
     app.register_blueprint(catalog_bp, url_prefix='/api')
     app.register_blueprint(quote_bp, url_prefix='/api')
     app.register_blueprint(consumption_bp, url_prefix='/api')
+    app.register_blueprint(cost_bp, url_prefix='/api')
     
     # Root route - serve frontend
     @app.route("/")

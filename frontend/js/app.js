@@ -61,6 +61,10 @@ const App = {
         if (tabName === 'consumption' && typeof ConsumptionBuilder !== 'undefined' && !ConsumptionBuilder.initialized) {
             ConsumptionBuilder.init();
         }
+        // Initialize cost builder if switching to cost tab
+        if (tabName === 'cost' && typeof CostBuilder !== 'undefined' && !CostBuilder.initialized) {
+            CostBuilder.init();
+        }
     }
 };
 

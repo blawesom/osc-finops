@@ -280,7 +280,7 @@
                         
                         <!-- Filters Section -->
                         <section class="consumption-section">
-                            <h2>Filters</h2>
+                            <h2>Current Consumption</h2>
                             <div class="consumption-filters">
                                 <div class="form-row">
                                     <div class="form-group">
@@ -399,7 +399,110 @@
                     
                     <div class="tab-panel" id="tab-cost" style="display: none;">
                         <h2>Current Cost Evaluation</h2>
-                        <p>Current cost evaluation functionality will be implemented in Phase 4.</p>
+                        <div id="cost-loading" class="loading-message" style="display: none;">Loading cost data...</div>
+                        <div id="cost-error" class="error-message" style="display: none;"></div>
+
+                        <!-- Filters -->
+                        <section class="cost-filters">
+                            <h3>Filters</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cost-region">Region</label>
+                                    <select id="cost-region" class="form-input">
+                                        <option value="">Use Session Region</option>
+                                        <option value="cloudgouv-eu-west-1">cloudgouv-eu-west-1</option>
+                                        <option value="eu-west-2">eu-west-2</option>
+                                        <option value="us-west-1">us-west-1</option>
+                                        <option value="us-east-2">us-east-2</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cost-tag-key">Tag Key</label>
+                                    <input type="text" id="cost-tag-key" class="form-input" placeholder="Enter tag key">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cost-tag-value">Tag Value</label>
+                                    <input type="text" id="cost-tag-value" class="form-input" placeholder="Enter tag value">
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="cost-include-oos">
+                                        Include OOS Buckets (may take up to 10 minutes)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button id="fetch-cost-btn" class="btn btn-primary" style="display: none;">Refresh Costs</button>
+                                <button id="export-cost-csv-btn" class="btn btn-secondary">Export CSV</button>
+                                <button id="export-cost-json-btn" class="btn btn-secondary">Export JSON</button>
+                            </div>
+                        </section>
+
+                        <!-- Summary Cards -->
+                        <section class="cost-summary-cards">
+                            <h3>Summary</h3>
+                            <div class="summary-cards">
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Cost per Hour</div>
+                                    <div class="summary-card-value" id="cost-per-hour">$0.00</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Cost per Month</div>
+                                    <div class="summary-card-value" id="cost-per-month">$0.00</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Cost per Year</div>
+                                    <div class="summary-card-value" id="cost-per-year">$0.00</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Resource Count</div>
+                                    <div class="summary-card-value" id="cost-resource-count">0</div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Cost Table -->
+                        <section class="cost-data">
+                            <h3>Resource Costs</h3>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Resource ID</th>
+                                            <th>Resource Type</th>
+                                            <th>Region</th>
+                                            <th>Zone</th>
+                                            <th>Cost per Hour</th>
+                                            <th>Cost per Month</th>
+                                            <th>Cost per Year</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cost-table-body">
+                                        <tr>
+                                            <td colspan="7" class="empty-message">Loading cost data...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- Breakdown -->
+                        <section class="cost-breakdown">
+                            <div class="breakdown-grid">
+                                <div class="breakdown-section">
+                                    <h3>Breakdown by Resource Type</h3>
+                                    <ul id="breakdown-by-type-list" class="breakdown-list">
+                                        <li class="empty-message">No breakdown data available.</li>
+                                    </ul>
+                                </div>
+                                <div class="breakdown-section">
+                                    <h3>Breakdown by Category</h3>
+                                    <ul id="breakdown-by-category-list" class="breakdown-list">
+                                        <li class="empty-message">No breakdown data available.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </section>
                     </div>
                     
                     <div class="tab-panel" id="tab-trends" style="display: none;">
@@ -421,8 +524,10 @@
     <script src="/js/catalog.js"></script>
     <script src="/js/quote.js"></script>
     <script src="/js/quote-builder.js"></script>
-    <script src="/js/consumption.js"></script>
-    <script src="/js/consumption-builder.js"></script>
+        <script src="/js/consumption.js"></script>
+        <script src="/js/consumption-builder.js"></script>
+        <script src="/js/cost.js"></script>
+        <script src="/js/cost-builder.js"></script>
     <script>
         // Initialize quote builder when quotes tab is shown
         document.addEventListener('DOMContentLoaded', () => {
