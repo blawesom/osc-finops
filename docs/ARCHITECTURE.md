@@ -86,9 +86,16 @@ OSC-FinOps is a comprehensive FinOps service designed for Outscale customers, pr
 #### Backend Components
 - **API Layer** (`backend/api/`): REST API endpoints, request/response handling, validation
 - **Service Layer** (`backend/services/`): Business logic for each feature domain
+  - catalog_service  quote_service  consumption_service
+  - cost_service  trend_service  drift_service
+  - budget_service  allocation_service
+  - **trend_service**: Async trend calculation with progress tracking, 
+    date range iteration fixes, accurate cost calculation (UnitPrice × Value)
 - **Auth Module** (`backend/auth/`): Session management, credential validation
 - **Models** (`backend/models/`): Data models and schemas
 - **Utils** (`backend/utils/`): Utility functions and helpers
+  - `logger.py`: Logging configuration and setup
+  - `error_logger.py`: Error logging with request context
 - **Config** (`backend/config/`): Configuration management
 
 ## 3. Data Flow
@@ -380,6 +387,26 @@ User → Frontend (Cost Tab)
 - **Validation Errors**: Inline field validation feedback
 - **Session Expiration**: Auto-redirect to login
 
+### 8.3 Error Logging Flow
+
+```
+Exception/Error → Flask Error Handler
+  → log_exception() or log_error_message()
+  → Extract request context (method, path, endpoint, query params)
+  → Filter sensitive data (credentials, tokens)
+  → Build structured log data (exception type, message, stack trace, context)
+  → Write to logs/errors.log (ERROR level)
+  → Write to logs/app.log (INFO/ERROR level)
+  → Return user-friendly error response
+```
+
+**Error Logging Features**:
+- Automatic request context extraction
+- Sensitive data filtering
+- Full stack trace capture
+- Structured JSON format for log analysis
+- Separate error-only log file for monitoring
+
 ## 9. Scalability Considerations
 
 ### 9.1 Current Design (MVP)
@@ -528,11 +555,41 @@ response = gateway.ReadConsumptionAccount(ReadConsumptionAccountRequest())
 
 ## 14. Monitoring & Logging
 
-### 14.1 Logging
+### 14.1 Logging Infrastructure
+
+**Logging Configuration**:
+- **Setup**: `backend/utils/logger.py` - Configures JSON-formatted rotating file handlers
+- **Error Logging**: `backend/utils/error_logger.py` - Captures exceptions with request context
+- **Log Files**: 
+  - `logs/app.log` - General application logs (INFO and above)
+  - `logs/errors.log` - Error-only logs (ERROR and above)
+- **Log Format**: JSON with timestamp, level, name, message, and structured data
+- **Rotation**: Configurable max bytes (default 10MB) and backup count (default 5)
+- **Request Context**: Automatically captured for errors (method, path, endpoint, query params, user agent)
+- **Security**: Sensitive data (access_key, secret_key, password, token) automatically excluded
+
+**Error Handling Integration**:
+- All Flask error handlers log exceptions using `log_exception()`
+- APIError exceptions logged with status codes
+- 404 and 500 errors logged with context
+- Unhandled exceptions logged with full stack traces
+- Request context automatically extracted and included in error logs
+
+**Configuration** (from `backend/config/settings.py`):
+- `LOG_LEVEL`: Logging level (default: INFO)
+- `LOG_FILE_PATH`: Log directory path (default: "logs/")
+- `LOG_MAX_BYTES`: Max file size before rotation (default: 10485760 = 10MB)
+- `LOG_BACKUP_COUNT`: Number of backup files to keep (default: 5)
+- `ERROR_LOG_FILE`: Error log filename (default: "errors.log")
+- `APP_LOG_FILE`: Application log filename (default: "app.log")
+
+**Logging Features**:
 - Structured logging (JSON format)
 - Log levels: DEBUG, INFO, WARNING, ERROR
 - No sensitive data in logs
 - Request/response logging (excluding credentials)
+- Separate error-only log file for easier monitoring
+- Console logging in development mode
 
 ### 14.2 Metrics (Future)
 - Response times per endpoint
