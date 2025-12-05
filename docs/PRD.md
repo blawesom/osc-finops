@@ -36,7 +36,7 @@ OSC-FinOps consolidates functionality from existing tools into a single, integra
 ### 1.3 Success Metrics
 
 - All functional requirements (FR-1.1 through FR-5.2) implemented
-- All non-functional requirements (NFR-1.1 through NFR-4.2) met
+- All non-functional requirements (NFR-1.1 through NFR-4.2, NFR-3.3) met
 - Performance targets achieved (response times < 1-10 seconds)
 - Security requirements satisfied
 - User acceptance testing passed
@@ -307,17 +307,21 @@ Enable users to analyze cost trends over time and compare estimated costs with a
 - **US-4.4**: As a CFO, I want to compare actual costs vs. historical averages so I can identify anomalies
 
 #### Acceptance Criteria
-- [ ] System tracks cost trends over time (daily, weekly, monthly)
-- [ ] System identifies cost increases/decreases
-- [ ] System calculates cost growth rate
-- [ ] System visualizes trends with charts
-- [ ] System compares actual costs vs. historical averages
+- [x] System tracks cost trends over time (daily, weekly, monthly)
+- [x] System identifies cost increases/decreases
+- [x] System calculates cost growth rate
+- [x] System visualizes trends with charts
+- [x] System compares actual costs vs. historical averages
 - [ ] System compares estimated costs (osc-cost format) with actual consumption
-- [ ] System calculates drift percentage per resource category
-- [ ] System identifies resources with significant cost variance
-- [ ] System generates drift reports
-- [ ] Users can analyze drift for specific date ranges
-- [ ] Query performance < 10 seconds for 12 months of data
+- [x] System calculates drift percentage per resource category
+- [x] System identifies resources with significant cost variance
+- [x] System generates drift reports
+- [x] Users can analyze drift for specific date ranges
+- [x] Query performance < 10 seconds for 12 months of data (with async processing)
+- [x] System supports async job processing for long-running trend calculations
+- [x] System provides progress updates during trend calculation
+- [x] Cost calculation uses UnitPrice × Value for accurate period costs
+- [x] Date range iteration correctly handles day/week/month boundaries
 
 #### Technical Requirements
 - Trend calculation algorithms
@@ -489,7 +493,7 @@ All functional requirements (FR-1.1 through FR-5.2) must be implemented with:
 All non-functional requirements must be met:
 - **Security**: NFR-1.1, NFR-1.2, NFR-1.3
 - **Performance**: NFR-2.1, NFR-2.2, NFR-2.3
-- **Reliability**: NFR-3.1, NFR-3.2
+- **Reliability**: NFR-3.1, NFR-3.2, NFR-3.3
 - **Usability**: NFR-4.1, NFR-4.2
 
 ### 5.3 Testing
