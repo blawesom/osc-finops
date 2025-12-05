@@ -1,29 +1,7 @@
 {
-	"folders": [
-		{
-			"name": "osc-cost",
-			"path": "../../osc-cost"
-		},
-		{
-			"name": "cockpit-ext",
-			"path": "../../cockpit-ext"
-		},
-		{
-			"name": "oks-explorer",
-			"path": "../../oks-explorer"
-		},
-		{
-			"name": "osc-draft-invoicing",
-			"path": "../../osc-draft-invoicing"
-		},
-		{
-			"name": "osc-sdk-python",
-			"path": "../../osc-sdk-python"
-		},
-		{
-			"name": "osc-finops",
-			"path": ".."
-		}
-	],
-	"settings": {}
+    "folders": [
+        {
+            "path": ".."
+        }
+    ]
 }
