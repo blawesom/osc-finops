@@ -35,6 +35,11 @@ CONSUMPTION_CACHE_TTL: int = int(os.getenv("CONSUMPTION_CACHE_TTL", "3600"))  # 
 
 # Logging configuration
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+LOG_FILE_PATH: str = os.getenv("LOG_FILE_PATH", "logs/")
+LOG_MAX_BYTES: int = int(os.getenv("LOG_MAX_BYTES", "10485760"))  # 10MB default
+LOG_BACKUP_COUNT: int = int(os.getenv("LOG_BACKUP_COUNT", "5"))
+ERROR_LOG_FILE: str = os.getenv("ERROR_LOG_FILE", "errors.log")
+APP_LOG_FILE: str = os.getenv("APP_LOG_FILE", "app.log")
 
 # Database configuration
 DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///osc_finops.db")

@@ -18,11 +18,16 @@ from backend.api.cost import cost_bp
 from backend.api.trends import trends_bp
 from backend.utils.errors import APIError
 from backend.database import init_db, close_db
+from backend.utils.logger import setup_logging
+from backend.utils.error_logger import log_exception, log_error_message
 
 
 def create_app() -> Flask:
     """Create and configure Flask application."""
     app = Flask(__name__, static_folder="../frontend", static_url_path="")
+    
+    # Initialize logging first (before other operations)
+    setup_logging()
     
     # Configuration
     app.config["SECRET_KEY"] = SECRET_KEY
@@ -57,17 +62,56 @@ def create_app() -> Flask:
     @app.errorhandler(APIError)
     def handle_api_error(error):
         """Handle APIError exceptions."""
+        # Log the API error
+        log_exception(error, status_code=error.status_code)
+        
         response = jsonify(error.to_dict())
         response.status_code = error.status_code
         return response
     
     @app.errorhandler(404)
     def not_found(error):
+        """Handle 404 Not Found errors."""
+        log_error_message(
+            "Resource not found",
+            status_code=404,
+            additional_context={"error_type": "NOT_FOUND"}
+        )
         return {"error": {"code": "NOT_FOUND", "message": "Resource not found"}}, 404
     
     @app.errorhandler(500)
     def internal_error(error):
+        """Handle 500 Internal Server errors."""
+        # Log the exception if it's an Exception instance
+        if isinstance(error, Exception):
+            log_exception(error, status_code=500)
+        else:
+            log_error_message(
+                "Internal server error occurred",
+                status_code=500,
+                additional_context={"error_type": "INTERNAL_ERROR"}
+            )
         return {"error": {"code": "INTERNAL_ERROR", "message": "An internal error occurred"}}, 500
+    
+    @app.errorhandler(Exception)
+    def handle_all_exceptions(error):
+        """Handle all unhandled exceptions."""
+        # Log the exception
+        log_exception(error, status_code=500)
+        
+        # Return appropriate error response
+        if FLASK_DEBUG:
+            # In debug mode, include error details
+            return {
+                "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": str(error),
+                    "type": type(error).__name__
+                }
+            }, 500
+        else:
+            # In production, return generic error
+            return {"error": {"code": "INTERNAL_ERROR", "message": "An internal error occurred"}}, 500
 
     # Register teardown handler for database cleanup
     @app.teardown_appcontext
