@@ -5,7 +5,7 @@ from collections import defaultdict
 import time
 
 from backend.services.consumption_service import get_consumption, aggregate_by_granularity
-
+from backend.utils.error_logger import log_exception, log_error_message
 
 def calculate_trends(
     access_key: str,
@@ -361,9 +361,9 @@ def calculate_trends_async(
         
         if granularity == "day":
             # Generate every day from from_date to to_date (inclusive)
-            while current_dt <= to_dt:
+            while current_dt + timedelta(days=1)<= to_dt:
                 period_start = current_dt
-                period_end = current_dt
+                period_end = current_dt + timedelta(days=1)
                 period_ranges.append({
                     "period": period_start.strftime("%Y-%m-%d"),
                     "from_date": period_start.strftime("%Y-%m-%d"),
@@ -375,7 +375,7 @@ def calculate_trends_async(
             # Generate every week from from_date to to_date
             # Weeks start on Monday
             current_dt = from_dt
-            while current_dt <= to_dt:
+            while current_dt + timedelta(days=7) <= to_dt:
                 # Get Monday of the current week
                 days_since_monday = current_dt.weekday()
                 week_start = current_dt - timedelta(days=days_since_monday)
@@ -397,7 +397,7 @@ def calculate_trends_async(
         elif granularity == "month":
             # Generate every month from from_date to to_date
             current_dt = from_dt
-            while current_dt <= to_dt:
+            while current_dt + timedelta(days=30)<= to_dt:
                 # Get first day of current month
                 month_start = current_dt.replace(day=1)
                 
@@ -471,7 +471,8 @@ def calculate_trends_async(
                         if entry.get("Type", "").lower() == resource_type.lower()
                     ]
                 # Calculate total cost for this period
-                period_cost = sum(entry.get("UnitPrice", 0.0) or 0.0 for entry in entries)
+                #period_cost = sum(entry.get("UnitPrice", 0.0) or 0.0 for entry in entries)
+                period_cost = sum(entry.get("UnitPrice", 0.0)*entry.get("Value", 0.0) for entry in entries)
                 period_value = sum(entry.get("Value", 0.0) or 0.0 for entry in entries)
                 entry_count = len(entries)
                 
