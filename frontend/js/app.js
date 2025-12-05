@@ -65,6 +65,11 @@ const App = {
         if (tabName === 'cost' && typeof CostBuilder !== 'undefined' && !CostBuilder.initialized) {
             CostBuilder.init();
         }
+        
+        // Initialize trends builder if switching to trends tab
+        if (tabName === 'trends' && typeof TrendsBuilder !== 'undefined' && !TrendsBuilder.initialized) {
+            TrendsBuilder.init();
+        }
     }
 };
 

@@ -506,8 +506,154 @@
                     </div>
                     
                     <div class="tab-panel" id="tab-trends" style="display: none;">
-                        <h2>Trend Analysis</h2>
-                        <p>Trend analysis functionality will be implemented in Phase 5.</p>
+                        <div id="trends-loading" class="loading-message" style="display: none;">Loading trend data...</div>
+                        <div id="trends-error" class="error-message" style="display: none;"></div>
+                        
+                        <!-- Progress Bar -->
+                        <div id="trends-progress-container" class="progress-container" style="display: none; margin-bottom: 16px;">
+                            <div class="progress-bar-wrapper">
+                                <div id="trends-progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                    <span id="trends-progress-text" class="progress-text">0%</span>
+                                </div>
+                            </div>
+                            <div id="trends-progress-time" class="progress-time" style="margin-top: 8px; font-size: 0.9em; color: #666;"></div>
+                        </div>
+                        
+                        <!-- Filters Section -->
+                        <section class="trends-section">
+                            <h2>Trend Analysis</h2>
+                            <div class="trends-filters">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="trends-from-date">From Date</label>
+                                        <input type="date" id="trends-from-date" class="form-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="trends-to-date">To Date</label>
+                                        <input type="date" id="trends-to-date" class="form-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="trends-granularity">Granularity</label>
+                                        <select id="trends-granularity" class="form-input">
+                                            <option value="day">Day</option>
+                                            <option value="week">Week</option>
+                                            <option value="month">Month</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="trends-region">Region</label>
+                                        <select id="trends-region" class="form-input">
+                                            <option value="">Use Session Region</option>
+                                            <option value="cloudgouv-eu-west-1">cloudgouv-eu-west-1</option>
+                                            <option value="eu-west-2">eu-west-2</option>
+                                            <option value="us-west-1">us-west-1</option>
+                                            <option value="us-east-2">us-east-2</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="trends-resource-type">Resource Type (Optional)</label>
+                                        <input type="text" id="trends-resource-type" class="form-input" placeholder="e.g., Vm, Volume">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <button id="trends-load-btn" class="btn btn-primary">Load Trends</button>
+                                    <button id="trends-export-csv" class="btn btn-secondary">Export CSV</button>
+                                    <button id="trends-export-json" class="btn btn-secondary">Export JSON</button>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        <!-- Summary Cards -->
+                        <section class="trends-section">
+                            <h2>Summary</h2>
+                            <div class="summary-cards">
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Growth Rate</div>
+                                    <div class="summary-card-value" id="trends-growth-rate">0.00%</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Average Cost</div>
+                                    <div class="summary-card-value" id="trends-avg-cost">$0.00</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Total Cost</div>
+                                    <div class="summary-card-value" id="trends-total-cost">$0.00</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Trend Direction</div>
+                                    <div class="summary-card-value" id="trends-direction">-</div>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        <!-- Trend Chart -->
+                        <section class="trends-section">
+                            <h2>Cost Trend Chart</h2>
+                            <div style="position: relative; height: 400px;">
+                                <canvas id="trends-chart"></canvas>
+                            </div>
+                        </section>
+                        
+                        <!-- Drift Analysis Section -->
+                        <section class="trends-section">
+                            <h2>Cost Drift Analysis</h2>
+                            <div id="trends-drift-loading" class="loading-message" style="display: none;">Loading drift data...</div>
+                            <div id="trends-drift-error" class="error-message" style="display: none;"></div>
+                            
+                            <div class="trends-filters">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="trends-threshold">Drift Threshold (%)</label>
+                                        <input type="number" id="trends-threshold" class="form-input" value="10.0" min="0" max="100" step="0.1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>&nbsp;</label>
+                                        <button id="trends-load-drift-btn" class="btn btn-primary">Load Drift Analysis</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Drift Summary -->
+                            <div class="summary-cards" style="margin-top: 16px;">
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Overall Drift</div>
+                                    <div class="summary-card-value" id="drift-overall">0.00%</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Total Estimated</div>
+                                    <div class="summary-card-value" id="drift-total-estimated">$0.00</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Total Actual</div>
+                                    <div class="summary-card-value" id="drift-total-actual">$0.00</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Drift Amount</div>
+                                    <div class="summary-card-value" id="drift-amount">$0.00</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Drift Table -->
+                            <div class="table-container" style="margin-top: 16px;">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Resource Type</th>
+                                            <th>Estimated Cost</th>
+                                            <th>Actual Cost</th>
+                                            <th>Drift Amount</th>
+                                            <th>Drift %</th>
+                                            <th>Count (Est/Act)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="drift-table-body">
+                                        <tr>
+                                            <td colspan="6" class="empty-message">Load drift analysis to see data</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
                     </div>
                     
                     <div class="tab-panel" id="tab-budgets" style="display: none;">
@@ -519,15 +665,18 @@
         </div>
     </div>
     
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/app.js"></script>
     <script src="/js/catalog.js"></script>
     <script src="/js/quote.js"></script>
     <script src="/js/quote-builder.js"></script>
-        <script src="/js/consumption.js"></script>
-        <script src="/js/consumption-builder.js"></script>
-        <script src="/js/cost.js"></script>
-        <script src="/js/cost-builder.js"></script>
+    <script src="/js/consumption.js"></script>
+    <script src="/js/consumption-builder.js"></script>
+    <script src="/js/cost.js"></script>
+    <script src="/js/cost-builder.js"></script>
+    <script src="/js/trends.js"></script>
+    <script src="/js/trends-builder.js"></script>
     <script>
         // Initialize quote builder when quotes tab is shown
         document.addEventListener('DOMContentLoaded', () => {
