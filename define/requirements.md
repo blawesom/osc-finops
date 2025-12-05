@@ -171,6 +171,15 @@ Design a comprehensive FinOps service for Outscale customers and users, targetin
 - Handle API rate limiting gracefully
 - Provide fallback mechanisms for partial failures
 
+**NFR-3.3**: Logging & Monitoring
+- Structured JSON-formatted logging with rotating file handlers
+- Separate log files for general application logs and error-only logs
+- Request context captured in error logs (method, path, endpoint, query params)
+- Sensitive data excluded from logs (credentials, tokens)
+- Log rotation with configurable size limits and backup counts
+- Error logging with full stack traces and request context
+- Console logging in development mode
+
 ### 3.4 Usability
 **NFR-4.1**: User Interface
 - Simple, intuitive interface with tab-based navigation
