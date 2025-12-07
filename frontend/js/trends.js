@@ -4,7 +4,6 @@
 const TrendsService = {
     API_BASE: '/api',
     currentTrendData: null,
-    currentDriftData: null,
 
     /**
      * Get session ID from localStorage
@@ -51,6 +50,7 @@ const TrendsService = {
             if (params.region) queryParams.append('region', params.region);
             if (params.resource_type) queryParams.append('resource_type', params.resource_type);
             if (params.force_refresh) queryParams.append('force_refresh', 'true');
+            if (params.project_until) queryParams.append('project_until', params.project_until);
             
             const response = await fetch(`${this.API_BASE}/trends?${queryParams.toString()}`, {
                 method: 'GET',
@@ -75,51 +75,6 @@ const TrendsService = {
         }
     },
 
-    /**
-     * Get cost drift analysis.
-     * @param {Object} params - Query parameters
-     * @param {string} params.from_date - Start date (YYYY-MM-DD)
-     * @param {string} params.to_date - End date (YYYY-MM-DD)
-     * @param {string} [params.region] - Filter by region
-     * @param {number} [params.threshold] - Drift threshold percentage (default: 10.0)
-     * @param {boolean} [params.force_refresh] - Force cache refresh
-     * @returns {Promise<Object>} Drift data
-     */
-    async getDrift(params) {
-        try {
-            const queryParams = new URLSearchParams();
-            
-            // Required parameters
-            if (params.from_date) queryParams.append('from_date', params.from_date);
-            if (params.to_date) queryParams.append('to_date', params.to_date);
-            
-            // Optional parameters
-            if (params.region) queryParams.append('region', params.region);
-            if (params.threshold !== undefined) queryParams.append('threshold', params.threshold);
-            if (params.force_refresh) queryParams.append('force_refresh', 'true');
-            
-            const response = await fetch(`${this.API_BASE}/trends/drift?${queryParams.toString()}`, {
-                method: 'GET',
-                headers: this.getHeaders()
-            });
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error?.message || `HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            if (data.success) {
-                this.currentDriftData = data.data;
-                return data;
-            } else {
-                throw new Error(data.error?.message || 'Failed to fetch drift data');
-            }
-        } catch (error) {
-            console.error('Get drift error:', error);
-            throw error;
-        }
-    },
 
     /**
      * Submit async trend calculation job.

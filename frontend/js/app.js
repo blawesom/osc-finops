@@ -56,19 +56,14 @@ const App = {
             QuoteBuilder.init();
         }
         
-        // Initialize consumption builder if switching to consumption tab
-        // Only init if not already initialized (prevents duplicate event listeners)
-        if (tabName === 'consumption' && typeof ConsumptionBuilder !== 'undefined' && !ConsumptionBuilder.initialized) {
-            ConsumptionBuilder.init();
-        }
         // Initialize cost builder if switching to cost tab
         if (tabName === 'cost' && typeof CostBuilder !== 'undefined' && !CostBuilder.initialized) {
             CostBuilder.init();
         }
         
-        // Initialize trends builder if switching to trends tab
-        if (tabName === 'trends' && typeof TrendsBuilder !== 'undefined' && !TrendsBuilder.initialized) {
-            TrendsBuilder.init();
+        // Initialize cost management builder if switching to cost-management tab
+        if (tabName === 'cost-management' && typeof CostManagementBuilder !== 'undefined' && !CostManagementBuilder.initialized) {
+            CostManagementBuilder.init();
         }
     }
 };

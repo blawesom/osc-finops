@@ -46,8 +46,8 @@ Design a comprehensive FinOps service for Outscale customers and users, targetin
 - Support granularity: per day, per week, per month
 - Filter by date range (from_date, to_date)
 - Filter by region, service, resource type
-- Support multiple accounts on multiple regions
 - Display consumption entries with cost breakdown
+- **Note**: Integrated into unified "Cost Management" tab (see FR-4.3)
 
 **FR-2.2**: Consumption Analysis
 - Aggregate consumption by resource type, region, or tag
@@ -55,6 +55,7 @@ Design a comprehensive FinOps service for Outscale customers and users, targetin
 - Compare consumption across different time periods
 - Identify top cost drivers
 - Export consumption data to CSV/JSON
+- **Note**: Integrated into unified "Cost Management" tab (see FR-4.3)
 
 ### 2.3 Current Cost Evaluation (Reference: osc-cost)
 **FR-3.1**: Evaluate current cost of used resources
@@ -79,6 +80,8 @@ Design a comprehensive FinOps service for Outscale customers and users, targetin
 - Calculate cost growth rate
 - Visualize trends with charts and graphs
 - Compare actual costs vs. historical averages
+- Project trends until specified end date (for budget planning)
+- **Note**: Integrated into unified "Cost Management" tab (see FR-4.3)
 
 **FR-4.2**: Cost Drift Analysis
 - Compare estimated costs (from osc-cost) with actual consumption (from digest)
@@ -86,21 +89,30 @@ Design a comprehensive FinOps service for Outscale customers and users, targetin
 - Identify resources with significant cost variance
 - Generate drift reports
 - Support drift analysis for specific date ranges
+- **Note**: Integrated into unified "Cost Management" tab (see FR-4.3)
 
-**FR-4.3**: Budget Management
-- Create budgets for projects, departments, or accounts
-- Set budget alerts (threshold-based: 50%, 75%, 90%, 100%)
-- Track budget vs. actual spending
+**FR-4.3**: Cost Management (Unified View)
+- **Unified Interface**: Single "Cost Management" tab combining consumption, trends, and budgets
+- **Budget Management**:
+  - Create budgets with name, amount, period type (monthly/quarterly/yearly), start date, optional end date
+  - Budgets repeat automatically per period type until end date (if specified) or indefinitely
+  - Edit and delete budgets
+  - Select budget for analysis
+- **Consumption Display**: Show past consumption for available periods in unified graph
+- **Trend Projection**: Automatically project consumption trends until end of selected budget period
+- **Unified Visualization**: Single chart displaying:
+  - Consumption line (historical data for available periods)
+  - Budget line (horizontal segments per period, repeating)
+  - Trend projection line (from analysis start until budget end date)
+- **Period Analysis**: Table showing consumption, budget, remaining budget, and utilization per period
+- **Data Integration**: All three data sources (consumption, trends, budget) load and align properly
+- Track budget vs. actual spending per period
+- Display budget utilization and remaining budget per period
 - Support multiple budget periods (monthly, quarterly, yearly)
-- Display budget utilization and remaining budget
+- Export unified data to CSV/JSON
+- **Future Enhancements**:
+  - Set budget alerts (threshold-based: 50%, 75%, 90%, 100%)
 - Generate budget compliance reports
-
-**FR-4.4**: Forecasting
-- Predict future costs based on historical trends
-- Support linear and exponential forecasting models
-- Account for seasonal patterns
-- Provide confidence intervals
-- Forecast at different granularities (daily, weekly, monthly)
 
 ### 2.5 Cost Allocation and Tagging
 **FR-5.1**: Cost Allocation by Tags

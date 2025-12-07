@@ -2,6 +2,7 @@
 from typing import Dict, List, Optional, Callable
 from datetime import datetime, timedelta
 from collections import defaultdict
+from dateutil.relativedelta import relativedelta
 import time
 
 from backend.services.consumption_service import get_consumption, aggregate_by_granularity
@@ -561,4 +562,107 @@ def calculate_trends_async(
         # Update progress to indicate error
         update_progress(0)
         raise e
+
+
+def project_trend_until_date(trend_data: Dict, end_date: str) -> Dict:
+    """
+    Extend trend projection until specified end date.
+    
+    Args:
+        trend_data: Trend data dictionary from calculate_trends
+        end_date: Target end date (ISO format: YYYY-MM-DD)
+    
+    Returns:
+        Extended trend data with projected periods until end_date
+    """
+    if not trend_data or not trend_data.get("periods"):
+        return trend_data
+    
+    periods = trend_data["periods"]
+    if not periods:
+        return trend_data
+    
+    # Get the last period date
+    last_period = periods[-1]
+    last_date_str = last_period.get("period") or last_period.get("to_date")
+    
+    try:
+        last_date = datetime.strptime(last_date_str, "%Y-%m-%d")
+        target_date = datetime.strptime(end_date, "%Y-%m-%d")
+        
+        # If target date is before or equal to last date, return original data
+        if target_date <= last_date:
+            return trend_data
+        
+        # Calculate growth rate per period
+        growth_rate = trend_data.get("growth_rate", 0.0)
+        historical_avg = trend_data.get("historical_average", 0.0)
+        granularity = trend_data.get("granularity", "day")
+        
+        # Get the last cost value
+        last_cost = periods[-1].get("cost", historical_avg)
+        
+        # Generate projected periods
+        projected_periods = []
+        current_date = last_date
+        period_num = len(periods)
+        
+        # Determine period delta
+        if granularity == "day":
+            delta = timedelta(days=1)
+        elif granularity == "week":
+            delta = timedelta(weeks=1)
+        else:  # month
+            delta = relativedelta(months=1)
+        
+        # Project forward
+        while current_date < target_date:
+            current_date += delta
+            
+            # Don't exceed target date
+            if current_date > target_date:
+                current_date = target_date
+            
+            # Calculate projected cost based on growth rate
+            # Simple linear projection: cost = last_cost * (1 + growth_rate/100)
+            # For multiple periods, compound the growth
+            periods_ahead = period_num - len(periods) + 1
+            projected_cost = last_cost * ((1 + growth_rate / 100) ** periods_ahead)
+            
+            # Ensure non-negative
+            projected_cost = max(0, projected_cost)
+            
+            projected_periods.append({
+                "period": current_date.strftime("%Y-%m-%d"),
+                "cost": round(projected_cost, 2),
+                "projected": True
+            })
+            
+            period_num += 1
+            
+            # Stop if we've reached target date
+            if current_date >= target_date:
+                break
+        
+        # Combine original and projected periods
+        extended_periods = periods + projected_periods
+        
+        # Recalculate totals
+        total_cost = sum(p["cost"] for p in extended_periods)
+        
+        return {
+            **trend_data,
+            "periods": extended_periods,
+            "total_cost": round(total_cost, 2),
+            "period_count": len(extended_periods),
+            "projected_periods": len(projected_periods),
+            "to_date": end_date
+        }
+    
+    except ValueError as e:
+        # Invalid date format, return original data
+        return trend_data
+    except Exception as e:
+        # Any other error, return original data
+        return trend_data
 

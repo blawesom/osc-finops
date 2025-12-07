@@ -76,22 +76,27 @@ OSC-FinOps is a comprehensive FinOps service designed for Outscale customers, pr
 #### Frontend Components
 - **Auth Module** (`frontend/js/auth.js`): Handles user authentication, session management, and credential input
 - **Quote Module** (`frontend/js/quote.js`, `frontend/js/quote-builder.js`): Quote building interface with resource selection, cost calculation, and quote management (create, save, load, delete)
-- **Consumption Module** (`frontend/js/consumption.js`): Consumption history display with filtering and aggregation
-- **Cost Module** (`frontend/js/cost.js`): Current cost evaluation and resource cost breakdown
-- **Trends Module** (`frontend/js/trends.js`): Trend analysis and visualization
-- **Budget Module** (`frontend/js/budget.js`): Budget management and tracking
-- **Allocation Module** (`frontend/js/allocation.js`): Cost allocation by tags
-- **Accounts Module** (`frontend/js/accounts.js`): Multi-account management
+- **Consumption Module** (`frontend/js/consumption.js`): Consumption history API service (used by Cost Management)
+- **Cost Module** (`frontend/js/cost.js`, `frontend/js/cost-builder.js`): Current cost evaluation and resource cost breakdown
+- **Trends Module** (`frontend/js/trends.js`): Trend analysis API service (used by Cost Management)
+- **Budget Module** (`frontend/js/budget.js`): Budget service for API communication
+- **Cost Management Module** (`frontend/js/cost-management-builder.js`): Unified view combining consumption, trends, and budget management
+
+**Note**: Consumption, Trends, and Budgets functionality is integrated into the unified "Cost Management" tab. The original API service modules (consumption.js, trends.js) are preserved for API communication, but the separate builder modules and tabs have been removed.
 
 #### Backend Components
 - **API Layer** (`backend/api/`): REST API endpoints, request/response handling, validation
 - **Service Layer** (`backend/services/`): Business logic for each feature domain
-  - catalog_service  quote_service  consumption_service
-  - cost_service  trend_service  drift_service
-  - budget_service  allocation_service
+  - catalog_service  quote_service_db  consumption_service
+  - cost_service  trend_service
+  - budget_service
   - **trend_service**: Async trend calculation with progress tracking, 
-    date range iteration fixes, accurate cost calculation (UnitPrice × Value)
+    date range iteration fixes, accurate cost calculation (UnitPrice × Value),
+    trend projection until specified end date
+  - **budget_service**: Budget CRUD operations, period calculation, 
+    budget status calculation (spent vs. budget per period)
 - **Auth Module** (`backend/auth/`): Session management, credential validation
+- **Models** (`backend/models/`): Data models including Budget model for database persistence
 - **Models** (`backend/models/`): Data models and schemas
 - **Utils** (`backend/utils/`): Utility functions and helpers
   - `logger.py`: Logging configuration and setup
@@ -442,6 +447,16 @@ Exception/Error → Flask Error Handler
 - `quote_id` (UUID, FOREIGN KEY → quotes.quote_id, ON DELETE CASCADE)
 - `resource_name`, `resource_type`, `resource_data` (JSON), `quantity`, `unit_price`
 - `region`, `parameters` (JSON), `iops_unit_price`, `display_order`
+- `created_at`, `updated_at`
+
+**Budgets Table**:
+- `budget_id` (UUID, PRIMARY KEY)
+- `user_id` (UUID, FOREIGN KEY → users.user_id)
+- `name` (VARCHAR, NOT NULL)
+- `amount` (FLOAT, NOT NULL, > 0)
+- `period_type` (VARCHAR, 'monthly', 'quarterly', or 'yearly')
+- `start_date` (DATE, NOT NULL)
+- `end_date` (DATE, nullable, optional)
 - `created_at`, `updated_at`
 
 ### 9.3 Future Scalability Options

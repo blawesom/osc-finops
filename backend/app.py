@@ -16,6 +16,7 @@ from backend.api.quote import quote_bp
 from backend.api.consumption import consumption_bp
 from backend.api.cost import cost_bp
 from backend.api.trends import trends_bp
+from backend.api.budget import budget_bp
 from backend.utils.errors import APIError
 from backend.database import init_db, close_db
 from backend.utils.logger import setup_logging
@@ -47,6 +48,7 @@ def create_app() -> Flask:
     app.register_blueprint(consumption_bp, url_prefix='/api')
     app.register_blueprint(cost_bp, url_prefix='/api')
     app.register_blueprint(trends_bp, url_prefix='/api')
+    app.register_blueprint(budget_bp, url_prefix='/api')
     
     # Root route - serve frontend
     @app.route("/")

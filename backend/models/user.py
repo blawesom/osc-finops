@@ -20,6 +20,7 @@ class User(BaseModel):
     # Relationships
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
     quotes = relationship("Quote", back_populates="user", cascade="all, delete-orphan")
+    budgets = relationship("Budget", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<User(user_id={self.user_id}, account_id={self.account_id})>"

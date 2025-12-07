@@ -16,25 +16,7 @@ from backend.models.session import Session
 cost_bp = Blueprint('cost', __name__)
 
 
-def get_owner_from_session():
-    """Get account_id from session."""
-    session = getattr(request, 'session', None)
-    if not session:
-        return None
-    
-    # Get account_id from user_id in session
-    db = SessionLocal()
-    try:
-        if hasattr(session, 'user_id') and session.user_id:
-            user = db.query(User).filter(User.user_id == session.user_id).first()
-            if user:
-                return user.account_id
-    except Exception:
-        pass
-    finally:
-        db.close()
-    
-    return None
+from backend.utils.session_helpers import get_account_id_from_session
 
 
 @cost_bp.route('/cost', methods=['GET'])
@@ -58,7 +40,7 @@ def get_cost():
             raise APIError("Session not found", status_code=401)
         
         # Get account_id from user
-        account_id = get_owner_from_session()
+        account_id = get_account_id_from_session()
         if not account_id:
             raise APIError("Could not retrieve account information", status_code=500)
         
@@ -140,7 +122,7 @@ def export_cost():
             raise APIError("Session not found", status_code=401)
         
         # Get account_id from user
-        account_id = get_owner_from_session()
+        account_id = get_account_id_from_session()
         if not account_id:
             raise APIError("Could not retrieve account information", status_code=500)
         

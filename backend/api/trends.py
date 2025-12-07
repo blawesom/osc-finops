@@ -6,8 +6,7 @@ from typing import Optional
 from flask import Blueprint, request, jsonify, Response
 from datetime import datetime
 
-from backend.services.trend_service import calculate_trends, calculate_trends_async
-from backend.services.drift_service import calculate_drift
+from backend.services.trend_service import calculate_trends, calculate_trends_async, project_trend_until_date
 from backend.services.job_queue import job_queue
 from backend.config.settings import SUPPORTED_REGIONS
 from backend.utils.errors import APIError
@@ -19,25 +18,7 @@ from backend.models.user import User
 trends_bp = Blueprint('trends', __name__)
 
 
-def get_owner_from_session():
-    """Get account_id from session."""
-    session = getattr(request, 'session', None)
-    if not session:
-        return None
-    
-    # Get account_id from user_id in session
-    db = SessionLocal()
-    try:
-        if hasattr(session, 'user_id') and session.user_id:
-            user = db.query(User).filter(User.user_id == session.user_id).first()
-            if user:
-                return user.account_id
-    except Exception:
-        pass
-    finally:
-        db.close()
-    
-    return None
+from backend.utils.session_helpers import get_account_id_from_session
 
 
 @trends_bp.route('/trends', methods=['GET'])
@@ -66,6 +47,7 @@ def get_trends():
     region = request.args.get('region')
     resource_type = request.args.get('resource_type')
     force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
+    project_until = request.args.get('project_until')  # Optional projection end date
     
     # Validate required parameters
     if not from_date or not to_date:
@@ -94,7 +76,7 @@ def get_trends():
         )
     
     # Get account_id from session
-    account_id = get_owner_from_session()
+    account_id = get_account_id_from_session()
     if not account_id:
         raise APIError("Could not retrieve account information", status_code=401)
     
@@ -115,15 +97,26 @@ def get_trends():
             force_refresh=force_refresh
         )
         
+        # Project trend until specified date if requested
+        if project_until:
+            try:
+                datetime.strptime(project_until, "%Y-%m-%d")
+                if project_until > to_date:
+                    trend_data = project_trend_until_date(trend_data, project_until)
+            except ValueError:
+                # Invalid date format, ignore projection
+                pass
+        
         return jsonify({
             "success": True,
             "data": trend_data,
             "metadata": {
                 "from_date": from_date,
-                "to_date": to_date,
+                "to_date": project_until or to_date,
                 "region": query_region,
                 "granularity": granularity,
-                "resource_type": resource_type
+                "resource_type": resource_type,
+                "projected": bool(project_until)
             }
         }), 200
     
@@ -131,95 +124,6 @@ def get_trends():
         raise APIError(str(e), status_code=400)
     except Exception as e:
         raise APIError(f"Failed to calculate trends: {str(e)}", status_code=500)
-
-
-@trends_bp.route('/trends/drift', methods=['GET'])
-@require_auth
-def get_drift():
-    """
-    Get cost drift analysis comparing estimated costs with actual consumption.
-    Authentication required.
-    
-    Query parameters:
-        - from_date: Start date (required, ISO format: YYYY-MM-DD)
-        - to_date: End date (required, ISO format: YYYY-MM-DD)
-        - region: Filter by region (optional, uses session region if not provided)
-        - threshold: Percentage threshold for significant drift (optional, default: 10.0)
-        - force_refresh: Force refresh cache (optional: true/false)
-    """
-    session = getattr(request, 'session', None)
-    if not session:
-        raise APIError("Authentication required", status_code=401)
-    
-    # Get query parameters
-    from_date = request.args.get('from_date')
-    to_date = request.args.get('to_date')
-    region = request.args.get('region')
-    threshold = float(request.args.get('threshold', 10.0))
-    force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
-    
-    # Validate required parameters
-    if not from_date or not to_date:
-        raise APIError("from_date and to_date parameters are required", status_code=400)
-    
-    # Validate date format
-    try:
-        datetime.strptime(from_date, "%Y-%m-%d")
-        datetime.strptime(to_date, "%Y-%m-%d")
-    except ValueError:
-        raise APIError("Invalid date format. Use YYYY-MM-DD", status_code=400)
-    
-    # Validate date range
-    if from_date > to_date:
-        raise APIError("from_date must be <= to_date", status_code=400)
-    
-    # Validate threshold
-    if threshold < 0 or threshold > 100:
-        raise APIError("threshold must be between 0 and 100", status_code=400)
-    
-    # Validate region if provided
-    if region and region not in SUPPORTED_REGIONS:
-        raise APIError(
-            f"Unsupported region: {region}. Supported regions: {', '.join(SUPPORTED_REGIONS)}",
-            status_code=400
-        )
-    
-    # Get account_id from session
-    account_id = get_owner_from_session()
-    if not account_id:
-        raise APIError("Could not retrieve account information", status_code=401)
-    
-    # Use session region if region not specified
-    query_region = region or session.region
-    
-    try:
-        # Calculate drift
-        drift_data = calculate_drift(
-            access_key=session.access_key,
-            secret_key=session.secret_key,
-            region=query_region,
-            account_id=account_id,
-            from_date=from_date,
-            to_date=to_date,
-            threshold=threshold,
-            force_refresh=force_refresh
-        )
-        
-        return jsonify({
-            "success": True,
-            "data": drift_data,
-            "metadata": {
-                "from_date": from_date,
-                "to_date": to_date,
-                "region": query_region,
-                "threshold": threshold
-            }
-        }), 200
-    
-    except ValueError as e:
-        raise APIError(str(e), status_code=400)
-    except Exception as e:
-        raise APIError(f"Failed to calculate drift: {str(e)}", status_code=500)
 
 
 @trends_bp.route('/trends/export', methods=['GET'])
@@ -254,7 +158,7 @@ def export_trends():
         raise APIError("from_date and to_date parameters are required", status_code=400)
     
     # Get account_id from session
-    account_id = get_owner_from_session()
+    account_id = get_account_id_from_session()
     if not account_id:
         raise APIError("Could not retrieve account information", status_code=401)
     
@@ -361,7 +265,7 @@ def submit_trends_job():
         )
     
     # Get account_id from session
-    account_id = get_owner_from_session()
+    account_id = get_account_id_from_session()
     if not account_id:
         raise APIError("Could not retrieve account information", status_code=401)
     

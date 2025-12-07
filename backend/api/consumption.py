@@ -22,25 +22,7 @@ from backend.models.user import User
 consumption_bp = Blueprint('consumption', __name__)
 
 
-def get_owner_from_session():
-    """Get account_id from session."""
-    session = getattr(request, 'session', None)
-    if not session:
-        return None
-    
-    # Get account_id from user_id in session
-    db = SessionLocal()
-    try:
-        if hasattr(session, 'user_id') and session.user_id:
-            user = db.query(User).filter(User.user_id == session.user_id).first()
-            if user:
-                return user.account_id
-    except Exception:
-        pass
-    finally:
-        db.close()
-    
-    return None
+from backend.utils.session_helpers import get_account_id_from_session
 
 
 @consumption_bp.route('/consumption', methods=['GET'])
@@ -101,7 +83,7 @@ def get_consumption_endpoint():
         )
     
     # Get account_id from session
-    account_id = get_owner_from_session()
+    account_id = get_account_id_from_session()
     if not account_id:
         raise APIError("Could not retrieve account information", status_code=401)
     
@@ -213,7 +195,7 @@ def export_consumption_endpoint():
         raise APIError("from_date and to_date parameters are required", status_code=400)
     
     # Get account_id from session
-    account_id = get_owner_from_session()
+    account_id = get_account_id_from_session()
     if not account_id:
         raise APIError("Could not retrieve account information", status_code=401)
     
@@ -316,7 +298,7 @@ def get_top_drivers_endpoint():
         raise APIError("from_date and to_date parameters are required", status_code=400)
     
     # Get account_id from session
-    account_id = get_owner_from_session()
+    account_id = get_account_id_from_session()
     if not account_id:
         raise APIError("Could not retrieve account information", status_code=401)
     

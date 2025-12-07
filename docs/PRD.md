@@ -223,6 +223,8 @@ Enable users to build cost estimates (quotes) for planned infrastructure deploym
 #### Feature Description
 Enable users to retrieve and analyze consumption history with various granularities and filters.
 
+**Note**: This feature is now integrated into the unified "Cost Management" tab (see section 3.5) which combines consumption, trends, and budget management in a single cohesive view.
+
 #### User Stories
 - **US-2.1**: As an accountant, I want to view consumption history so I can reconcile invoices
 - **US-2.2**: As an accountant, I want to filter consumption by date range so I can match billing periods
@@ -300,6 +302,8 @@ Enable users to evaluate current costs of used resources by fetching live resour
 #### Feature Description
 Enable users to analyze cost trends over time and compare estimated costs with actual consumption to identify cost drift.
 
+**Note**: This feature is now integrated into the unified "Cost Management" tab (see section 3.5) which combines consumption, trends, and budget management in a single cohesive view. Trend projection is automatically extended until the end of the budget period when a budget is selected.
+
 #### User Stories
 - **US-4.1**: As a CFO, I want to analyze cost trends so I can forecast future spending
 - **US-4.2**: As a customer team member, I want to analyze cost drift so I can identify optimization opportunities
@@ -334,34 +338,60 @@ Enable users to analyze cost trends over time and compare estimated costs with a
 
 ---
 
-### 3.5 Budget Management (FR-4.3)
+### 3.5 Cost Management (Unified View) - FR-2.1, FR-2.2, FR-4.1, FR-4.2, FR-4.3
 
 #### Feature Description
-Enable users to create, track, and manage budgets with alerts and compliance reporting.
+Unified "Cost Management" tab that combines consumption history, trend analysis, and budget management into a single cohesive view. This replaces the separate Consumption, Trends, and Budgets tabs, providing an integrated experience for cost monitoring and budget tracking.
+
+The unified view displays:
+- **Past Consumption**: Historical consumption data for available periods
+- **Budget Management**: Create and manage repeatable budgets per period (monthly, quarterly, yearly)
+- **Trend Projection**: Consumption trends projected until the end of the budget period
+- **Unified Graph**: Single chart showing consumption, budget limits, and trend projections together
+- **Period Details**: Table showing consumption, budget, remaining budget, and utilization per period
 
 #### User Stories
 - **US-5.1**: As a project manager, I want to create budgets per project so I can control spending
 - **US-5.2**: As a CFO, I want to set budgets for departments so I can manage organizational spending
-- **US-5.3**: As a project manager, I want to receive budget alerts so I can take action before exceeding budgets
-- **US-5.4**: As a CFO, I want to see budget compliance reports so I can monitor adherence
+- **US-5.3**: As a project manager, I want to see consumption, trends, and budgets in one view so I can make informed decisions
+- **US-5.4**: As a CFO, I want to see budget compliance with consumption trends so I can monitor adherence
+- **US-5.5**: As a project manager, I want to see trend projections until budget end date so I can plan ahead
+- **US-5.6**: As a CFO, I want to visualize consumption vs. budget in a unified graph so I can quickly identify issues
 
 #### Acceptance Criteria
-- [ ] Users can create budgets for projects, departments, or accounts
-- [ ] Users can set budget alert thresholds (50%, 75%, 90%, 100%)
-- [ ] System tracks budget vs. actual spending
-- [ ] System supports multiple budget periods (monthly, quarterly, yearly)
-- [ ] System displays budget utilization and remaining budget
-- [ ] System generates budget compliance reports
-- [ ] Alerts trigger at correct thresholds
-- [ ] Budget calculations are accurate
-- [ ] Multi-account budget support works
+- [x] Users can create budgets with name, amount, period type (monthly/quarterly/yearly), start date, and optional end date
+- [x] Budgets repeat automatically per period type until end date (if specified) or indefinitely
+- [x] System tracks budget vs. actual spending per period
+- [x] System displays budget utilization and remaining budget per period
+- [x] System shows consumption data for available historical periods
+- [x] System projects consumption trends until the end of the selected budget period
+- [x] Unified graph displays consumption line, budget line, and trend projection line
+- [x] System shows period details table with consumption, budget, remaining, and utilization
+- [x] Users can select a budget to analyze against consumption and trends
+- [x] Budget calculations are accurate per period
+- [x] All data sources (consumption, trends, budget) load and display correctly
+- [x] Trend data only appears within the requested date range (from_date to to_date)
+- [x] Budget periods are displayed throughout the entire date range, not just after to_date
+- [x] Consumption data points are evenly spaced and aligned with timeline periods
+- [x] All datasets (consumption, trend, budget) use consistent period keys aligned to the timeline
+- [x] Timeline serves as master reference ensuring all data points align correctly on X-axis
+- [ ] Users can set budget alert thresholds (50%, 75%, 90%, 100%) - Future enhancement
+- [ ] Alerts trigger at correct thresholds - Future enhancement
+- [ ] Multi-account budget support - Future enhancement
 
 #### Technical Requirements
-- Budget storage (in-memory for MVP, database for future)
-- Alert generation logic
-- Budget vs. actual calculation
-- Period calculation (monthly/quarterly/yearly)
-- Report generation
+- Budget storage in database (SQLite/PostgreSQL with SQLAlchemy)
+- Budget API endpoints (CRUD operations)
+- Budget status calculation (spent vs. budget per period)
+- Trend projection extension until budget end date
+- Unified chart visualization (Chart.js) with multiple datasets
+- Data aggregation and alignment for unified display
+- Period calculation (monthly/quarterly/yearly) with proper date handling
+
+#### Integration Notes
+- Consumption History (section 3.2) functionality is integrated into this tab
+- Trend Analysis (section 3.4) functionality is integrated into this tab with projection support
+- Separate Consumption, Trends, and Budgets tabs are hidden but code preserved for potential future use
 
 #### Priority: **MEDIUM** (Advanced Feature)
 

@@ -50,7 +50,7 @@
         <!-- Main Application (shown when authenticated) -->
         <div id="main-app" class="screen" style="display: none;">
             <header class="app-header">
-                <h1>OSC-FinOps</h1>
+                <h1>OSC FinOps Portal</h1>
                 <div class="header-actions">
                     <span id="session-info" class="session-info"></span>
                     <button id="logout-button" class="btn btn-secondary">Logout</button>
@@ -59,10 +59,8 @@
             
             <nav class="tab-navigation">
                 <button class="tab-button active" data-tab="quotes">Quotes</button>
-                <button class="tab-button" data-tab="consumption">Consumption</button>
                 <button class="tab-button" data-tab="cost">Cost</button>
-                <button class="tab-button" data-tab="trends">Trends</button>
-                <button class="tab-button" data-tab="budgets">Budgets</button>
+                <button class="tab-button" data-tab="cost-management">Cost Management</button>
             </nav>
             
             <main class="main-content">
@@ -274,129 +272,6 @@
                         </div>
                     </div>
                     
-                    <div class="tab-panel" id="tab-consumption" style="display: none;">
-                        <div id="consumption-loading" class="loading-message" style="display: none;">Loading consumption data...</div>
-                        <div id="consumption-error" class="error-message" style="display: none;"></div>
-                        
-                        <!-- Filters Section -->
-                        <section class="consumption-section">
-                            <h2>Current Consumption</h2>
-                            <div class="consumption-filters">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="consumption-from-date">From Date</label>
-                                        <input type="date" id="consumption-from-date" class="form-input">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="consumption-to-date">To Date</label>
-                                        <input type="date" id="consumption-to-date" class="form-input">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="consumption-granularity">Granularity</label>
-                                        <select id="consumption-granularity" class="form-input">
-                                            <option value="day">Day</option>
-                                            <option value="week">Week</option>
-                                            <option value="month">Month</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="consumption-region">Region</label>
-                                        <select id="consumption-region" class="form-input">
-                                            <option value="">All Regions</option>
-                                            <option value="cloudgouv-eu-west-1">cloudgouv-eu-west-1</option>
-                                            <option value="eu-west-2">eu-west-2</option>
-                                            <option value="us-west-1">us-west-1</option>
-                                            <option value="us-east-2">us-east-2</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="consumption-service">Service</label>
-                                        <select id="consumption-service" class="form-input">
-                                            <option value="">All Services</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="consumption-resource-type">Resource Type</label>
-                                        <select id="consumption-resource-type" class="form-input">
-                                            <option value="">All Resource Types</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="consumption-aggregate-by">Aggregate By</label>
-                                        <select id="consumption-aggregate-by" class="form-input">
-                                            <option value="">None</option>
-                                            <option value="resource_type">Resource Type</option>
-                                            <option value="region">Region</option>
-                                            <option value="tag">Tag</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row">
-                                    <button id="consumption-apply-filters" class="btn btn-primary">Apply Filters</button>
-                                    <button id="consumption-clear-filters" class="btn btn-secondary">Clear Filters</button>
-                                    <button id="consumption-export-csv" class="btn btn-secondary">Export CSV</button>
-                                    <button id="consumption-export-json" class="btn btn-secondary">Export JSON</button>
-                                </div>
-                            </div>
-                        </section>
-                        
-                        <!-- Summary Cards -->
-                        <section class="consumption-section">
-                            <h2>Summary</h2>
-                            <div class="summary-cards">
-                                <div class="summary-card">
-                                    <div class="summary-card-label">Total Cost</div>
-                                    <div class="summary-card-value" id="consumption-total-cost">$0.00</div>
-                                </div>
-                                <div class="summary-card">
-                                    <div class="summary-card-label">Period Count</div>
-                                    <div class="summary-card-value" id="consumption-period-count">0</div>
-                                </div>
-                                <div class="summary-card">
-                                    <div class="summary-card-label">Average Daily Cost</div>
-                                    <div class="summary-card-value" id="consumption-avg-daily">$0.00</div>
-                                </div>
-                            </div>
-                        </section>
-                        
-                        <!-- Consumption Table -->
-                        <section class="consumption-section">
-                            <h2>Consumption Data</h2>
-                            <div class="table-container">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>From Date</th>
-                                            <th>To Date</th>
-                                            <th>Service</th>
-                                            <th>Resource Type</th>
-                                            <th>Operation</th>
-                                            <th>Value</th>
-                                            <th>Unit Price</th>
-                                            <th>Total Cost</th>
-                                            <th>Region</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="consumption-table-body">
-                                        <tr>
-                                            <td colspan="9" class="empty-message">Select filters and click "Apply Filters" to load consumption data</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
-                        
-                        <!-- Top Cost Drivers -->
-                        <section class="consumption-section">
-                            <h2>Top Cost Drivers</h2>
-                            <div id="consumption-top-drivers">
-                                <p class="empty-message">Load consumption data to see top cost drivers</p>
-                            </div>
-                        </section>
-                    </div>
-                    
                     <div class="tab-panel" id="tab-cost" style="display: none;">
                         <h2>Current Cost Evaluation</h2>
                         <div id="cost-loading" class="loading-message" style="display: none;">Loading cost data...</div>
@@ -505,150 +380,118 @@
                         </section>
                     </div>
                     
-                    <div class="tab-panel" id="tab-trends" style="display: none;">
-                        <div id="trends-loading" class="loading-message" style="display: none;">Loading trend data...</div>
-                        <div id="trends-error" class="error-message" style="display: none;"></div>
+                    <!-- Cost Management Tab (Unified View) -->
+                    <div class="tab-panel" id="tab-cost-management" style="display: none;">
+                        <div id="cost-management-loading" class="loading-message" style="display: none;">Loading cost management data...</div>
+                        <div id="cost-management-error" class="error-message" style="display: none;"></div>
                         
                         <!-- Progress Bar -->
-                        <div id="trends-progress-container" class="progress-container" style="display: none; margin-bottom: 16px;">
+                        <div id="cm-progress-container" class="progress-container" style="display: none; margin-bottom: 16px;">
                             <div class="progress-bar-wrapper">
-                                <div id="trends-progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                                    <span id="trends-progress-text" class="progress-text">0%</span>
+                                <div id="cm-progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                    <span id="cm-progress-text" class="progress-text">0%</span>
                                 </div>
                             </div>
-                            <div id="trends-progress-time" class="progress-time" style="margin-top: 8px; font-size: 0.9em; color: #666;"></div>
+                            <div id="cm-progress-time" class="progress-time" style="margin-top: 8px; font-size: 0.9em; color: #666;"></div>
                         </div>
                         
                         <!-- Filters Section -->
-                        <section class="trends-section">
-                            <h2>Trend Analysis</h2>
-                            <div class="trends-filters">
+                        <section class="cost-management-section">
+                            <h2>Filters</h2>
+                            <div class="cost-management-filters">
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="trends-from-date">From Date</label>
-                                        <input type="date" id="trends-from-date" class="form-input">
+                                        <label for="cm-from-date">From Date</label>
+                                        <input type="date" id="cm-from-date" class="form-input">
                                     </div>
                                     <div class="form-group">
-                                        <label for="trends-to-date">To Date</label>
-                                        <input type="date" id="trends-to-date" class="form-input">
+                                        <label for="cm-to-date">To Date</label>
+                                        <input type="date" id="cm-to-date" class="form-input">
                                     </div>
                                     <div class="form-group">
-                                        <label for="trends-granularity">Granularity</label>
-                                        <select id="trends-granularity" class="form-input">
+                                        <label for="cm-granularity">Granularity</label>
+                                        <select id="cm-granularity" class="form-input">
                                             <option value="day">Day</option>
                                             <option value="week">Week</option>
                                             <option value="month">Month</option>
                                         </select>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="trends-region">Region</label>
-                                        <select id="trends-region" class="form-input">
+                                    <!-- <div class="form-group">
+                                        <label for="cm-region">Region</label>
+                                        <select id="cm-region" class="form-input">
                                             <option value="">Use Session Region</option>
                                             <option value="cloudgouv-eu-west-1">cloudgouv-eu-west-1</option>
                                             <option value="eu-west-2">eu-west-2</option>
                                             <option value="us-west-1">us-west-1</option>
                                             <option value="us-east-2">us-east-2</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="trends-resource-type">Resource Type (Optional)</label>
-                                        <input type="text" id="trends-resource-type" class="form-input" placeholder="e.g., Vm, Volume">
-                                    </div>
+                                        </select> 
+                                    </div>-->
                                 </div>
                                 <div class="form-row">
-                                    <button id="trends-load-btn" class="btn btn-primary">Load Trends</button>
-                                    <button id="trends-export-csv" class="btn btn-secondary">Export CSV</button>
-                                    <button id="trends-export-json" class="btn btn-secondary">Export JSON</button>
+                                    <button id="cm-load-btn" class="btn btn-primary">Load Data</button>
+                                    <button id="cm-export-csv" class="btn btn-secondary">Export CSV</button>
+                                    <button id="cm-export-json" class="btn btn-secondary">Export JSON</button>
                                 </div>
+                            </div>
+                        </section>
+                        
+                        <!-- Budget Management Section -->
+                        <section class="cost-management-section">
+                            <h2>Budgets</h2>
+                            <button id="cm-create-budget-btn" class="btn btn-primary">Create Budget</button>
+                            <div id="cm-budgets-list" class="budgets-list">
+                                <p class="empty-message">No budgets created. Click "Create Budget" to get started.</p>
                             </div>
                         </section>
                         
                         <!-- Summary Cards -->
-                        <section class="trends-section">
+                        <section class="cost-management-section">
                             <h2>Summary</h2>
                             <div class="summary-cards">
                                 <div class="summary-card">
-                                    <div class="summary-card-label">Growth Rate</div>
-                                    <div class="summary-card-value" id="trends-growth-rate">0.00%</div>
+                                    <div class="summary-card-label">Total Consumption</div>
+                                    <div class="summary-card-value" id="cm-total-consumption">$0.00</div>
                                 </div>
                                 <div class="summary-card">
-                                    <div class="summary-card-label">Average Cost</div>
-                                    <div class="summary-card-value" id="trends-avg-cost">$0.00</div>
+                                    <div class="summary-card-label">Total Budget</div>
+                                    <div class="summary-card-value" id="cm-total-budget">$0.00</div>
                                 </div>
                                 <div class="summary-card">
-                                    <div class="summary-card-label">Total Cost</div>
-                                    <div class="summary-card-value" id="trends-total-cost">$0.00</div>
+                                    <div class="summary-card-label">Remaining Budget</div>
+                                    <div class="summary-card-value" id="cm-remaining-budget">$0.00</div>
                                 </div>
                                 <div class="summary-card">
                                     <div class="summary-card-label">Trend Direction</div>
-                                    <div class="summary-card-value" id="trends-direction">-</div>
+                                    <div class="summary-card-value" id="cm-trend-direction">-</div>
                                 </div>
                             </div>
                         </section>
                         
-                        <!-- Trend Chart -->
-                        <section class="trends-section">
-                            <h2>Cost Trend Chart</h2>
+                        <!-- Unified Graph -->
+                        <section class="cost-management-section">
+                            <h2>Cost Analysis</h2>
                             <div style="position: relative; height: 400px;">
-                                <canvas id="trends-chart"></canvas>
+                                <canvas id="cm-chart"></canvas>
                             </div>
                         </section>
                         
-                        <!-- Drift Analysis Section -->
-                        <section class="trends-section">
-                            <h2>Cost Drift Analysis</h2>
-                            <div id="trends-drift-loading" class="loading-message" style="display: none;">Loading drift data...</div>
-                            <div id="trends-drift-error" class="error-message" style="display: none;"></div>
-                            
-                            <div class="trends-filters">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="trends-threshold">Drift Threshold (%)</label>
-                                        <input type="number" id="trends-threshold" class="form-input" value="10.0" min="0" max="100" step="0.1">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>&nbsp;</label>
-                                        <button id="trends-load-drift-btn" class="btn btn-primary">Load Drift Analysis</button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Drift Summary -->
-                            <div class="summary-cards" style="margin-top: 16px;">
-                                <div class="summary-card">
-                                    <div class="summary-card-label">Overall Drift</div>
-                                    <div class="summary-card-value" id="drift-overall">0.00%</div>
-                                </div>
-                                <div class="summary-card">
-                                    <div class="summary-card-label">Total Estimated</div>
-                                    <div class="summary-card-value" id="drift-total-estimated">$0.00</div>
-                                </div>
-                                <div class="summary-card">
-                                    <div class="summary-card-label">Total Actual</div>
-                                    <div class="summary-card-value" id="drift-total-actual">$0.00</div>
-                                </div>
-                                <div class="summary-card">
-                                    <div class="summary-card-label">Drift Amount</div>
-                                    <div class="summary-card-value" id="drift-amount">$0.00</div>
-                                </div>
-                            </div>
-                            
-                            <!-- Drift Table -->
-                            <div class="table-container" style="margin-top: 16px;">
+                        <!-- Data Table -->
+                        <section class="cost-management-section">
+                            <h2>Period Details</h2>
+                            <div class="table-container">
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>Resource Type</th>
-                                            <th>Estimated Cost</th>
-                                            <th>Actual Cost</th>
-                                            <th>Drift Amount</th>
-                                            <th>Drift %</th>
-                                            <th>Count (Est/Act)</th>
+                                            <th>Period</th>
+                                            <th>Consumption</th>
+                                            <th>Budget</th>
+                                            <th>Remaining</th>
+                                            <th>Utilization %</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="drift-table-body">
+                                    <tbody id="cm-table-body">
                                         <tr>
-                                            <td colspan="6" class="empty-message">Load drift analysis to see data</td>
+                                            <td colspan="5" class="empty-message">Load data to see period details</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -656,9 +499,42 @@
                         </section>
                     </div>
                     
-                    <div class="tab-panel" id="tab-budgets" style="display: none;">
-                        <h2>Budget Management</h2>
-                        <p>Budget management functionality will be implemented in Phase 6.</p>
+                    <!-- Budget Modal -->
+                    <div id="cm-budget-modal" class="modal" style="display: none;">
+                        <div class="modal-overlay" onclick="CostManagementBuilder.hideBudgetModal()"></div>
+                        <div class="modal-content">
+                            <h3 id="cm-budget-modal-title">Create Budget</h3>
+                            <div id="cm-budget-modal-error" class="error-message" style="display: none; margin-bottom: 16px;"></div>
+                            <div class="form-group">
+                                <label for="cm-budget-name">Budget Name</label>
+                                <input type="text" id="cm-budget-name" class="form-input" placeholder="Enter budget name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cm-budget-amount">Budget Amount</label>
+                                <input type="number" id="cm-budget-amount" class="form-input" min="0.01" step="0.01" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cm-budget-period-type">Period Type</label>
+                                <select id="cm-budget-period-type" class="form-input" required>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="quarterly">Quarterly</option>
+                                    <option value="yearly">Yearly</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="cm-budget-start-date">Start Date</label>
+                                <input type="date" id="cm-budget-start-date" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cm-budget-end-date">End Date (Optional)</label>
+                                <input type="date" id="cm-budget-end-date" class="form-input">
+                                <small style="color: #666;">Leave empty for indefinite budget</small>
+                            </div>
+                            <div class="modal-actions">
+                                <button class="btn btn-secondary" onclick="CostManagementBuilder.hideBudgetModal()">Cancel</button>
+                                <button class="btn btn-primary" id="cm-budget-save-btn" onclick="CostManagementBuilder.saveBudget()">Create</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -672,11 +548,11 @@
     <script src="/js/quote.js"></script>
     <script src="/js/quote-builder.js"></script>
     <script src="/js/consumption.js"></script>
-    <script src="/js/consumption-builder.js"></script>
     <script src="/js/cost.js"></script>
     <script src="/js/cost-builder.js"></script>
     <script src="/js/trends.js"></script>
-    <script src="/js/trends-builder.js"></script>
+    <script src="/js/budget.js"></script>
+    <script src="/js/cost-management-builder.js"></script>
     <script>
         // Initialize quote builder when quotes tab is shown
         document.addEventListener('DOMContentLoaded', () => {

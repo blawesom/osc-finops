@@ -1,7 +1,7 @@
 """Database initialization script."""
 from backend.config.database import init_db, engine
 from backend.database.base import Base
-from backend.models import User, Session, Quote, QuoteItem
+from backend.models import User, Session, Quote, QuoteItem, Budget
 
 
 def create_tables():

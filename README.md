@@ -19,12 +19,14 @@ OSC-FinOps is designed to help Outscale customers and users (project managers, C
 
 ### Core Features
 - **Quote Building**: Build quotes based on resources and region catalog prices (like cockpit-ext)
-- **Consumption History**: Get history of consumption with granularity options (per day, week, or month) (like osc-draft-invoicing)
+- **Cost Management**: Unified view combining consumption history, trend analysis, and budget management
+  - View past consumption for available periods
+  - Create and manage repeatable budgets per period (monthly, quarterly, yearly)
+  - See consumption trends projected until budget end date
+  - Visualize consumption, budget, and trends in a single cohesive graph
 - **Current Cost Evaluation**: Evaluate current cost of used resources (like osc-cost)
-- **Trend Analysis**: Analyze trends of resource usage and cost drift based on defined budgets or plans
 
 ### Advanced Features
-- **Budget Management**: Create, track, and manage budgets with alerts
 - **Cost Allocation**: Allocate costs by tags, projects, or departments
 - **Multi-Account Support**: Manage multiple Outscale accounts and regions
 - **Export Capabilities**: Export data to CSV, JSON, PDF, and ODS formats
@@ -217,32 +219,29 @@ For detailed testing instructions, see [tests/TESTING.md](tests/TESTING.md).
 7. Export quote as CSV or PDF
 8. **Note**: Saving quotes may require authentication (future feature)
 
-#### Consumption History
-1. Navigate to the "Consumption" tab
-2. Select date range
-3. Choose granularity (day/week/month)
-4. Apply filters (region, service, resource type)
-5. View consumption data
-6. Export as CSV or JSON
+#### Cost Management (Unified View)
+1. Navigate to the "Cost Management" tab
+2. Select date range and granularity (day/week/month)
+3. Optionally select region filter
+4. Create a budget:
+   - Click "Create Budget"
+   - Enter budget name, amount, period type (monthly/quarterly/yearly)
+   - Set start date and optional end date
+   - Budget will repeat automatically per period
+5. Select a budget to analyze
+6. Click "Load Data" to see:
+   - Consumption data for available periods
+   - Budget limits per period
+   - Trend projections until budget end date
+   - Unified graph showing all three datasets
+   - Period details table with consumption, budget, remaining, and utilization
+7. Export data as CSV or JSON
 
 #### Current Cost Evaluation
 1. Navigate to the "Cost" tab
 2. Select region and filters
 3. View current resource costs
 4. Export in desired format (human/json/csv/ods)
-
-#### Trend Analysis
-1. Navigate to the "Trends" tab
-2. Select date range and granularity
-3. View cost trends and growth rates
-4. Compare with historical averages
-
-#### Budget Management
-1. Navigate to the "Budgets" tab
-2. Create a new budget
-3. Set budget amount and period
-4. Configure alert thresholds
-5. Track budget vs. actual spending
 
 ## API Documentation
 
@@ -374,7 +373,11 @@ See the implementation plan for detailed phases:
 - Phase 2: Catalog Integration & Quote Building ✅ **COMPLETED & VALIDATED**
 - Phase 3: Consumption History ✅ **COMPLETED & VALIDATED**
 - Phase 4: Current Cost Evaluation ✅ **COMPLETED & VALIDATED**
-- Phase 5: Trend Analysis & Cost Drift
-- Phase 6: Budget Management
+- Phase 5: Trend Analysis & Cost Drift ✅ **COMPLETED & VALIDATED**
+- Phase 6: Cost Management (Unified View) ✅ **COMPLETED**
+  - Budget Management with database persistence
+  - Unified view combining consumption, trends, and budgets
+  - Trend projection until budget end date
+  - Integrated graph visualization
 - Phase 7: Cost Allocation & Multi-Account Support
 - Phase 8: Polish, Testing & Documentation
