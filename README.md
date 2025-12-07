@@ -26,6 +26,10 @@ OSC-FinOps is designed to help Outscale customers and users (project managers, C
   - Visualize consumption, budget, and trends in a single cohesive graph
 - **Current Cost Evaluation**: Evaluate current cost of used resources (like osc-cost)
 
+### User Experience Features
+- **Dark/Light Theme Toggle**: Switch between light and dark themes with preference persistence
+- **Multi-language Support**: French and English language switching with full UI translation
+
 ### Advanced Features
 - **Cost Allocation**: Allocate costs by tags, projects, or departments
 - **Multi-Account Support**: Manage multiple Outscale accounts and regions
@@ -38,6 +42,8 @@ OSC-FinOps is designed to help Outscale customers and users (project managers, C
 - **An Outscale account** with API access (Access Key and Secret Key)
 - **Network access** to Outscale API endpoints
 - **Modern web browser** (Chrome, Firefox, Safari, Edge - latest versions)
+  - JavaScript enabled
+  - localStorage support (for theme and language preferences)
 
 ## Installation
 
@@ -134,7 +140,15 @@ osc-finops/
 │   └── app.py           # Flask application entry point
 ├── frontend/            # Frontend code
 │   ├── css/             # Stylesheets
+│   │   └── styles.css   # Main stylesheet with theme support
 │   ├── js/              # JavaScript modules
+│   │   ├── app.js       # Main app logic and theme management
+│   │   ├── auth.js      # Authentication
+│   │   ├── i18n.js      # Internationalization (FR/EN)
+│   │   ├── quote-builder.js
+│   │   ├── cost-builder.js
+│   │   ├── cost-management-builder.js
+│   │   └── ...
 │   ├── assets/          # Static assets
 │   └── index.html       # Main HTML file
 ├── tests/               # Test files
@@ -198,10 +212,14 @@ For detailed testing instructions, see [tests/TESTING.md](tests/TESTING.md).
 
 1. **Start the server** (see Development Setup above)
 2. **Open the application** in your browser: `http://localhost:5000`
-3. **Browse Catalogs** (No login required):
+3. **Customize Your Experience** (Available immediately):
+   - **Theme Toggle**: Click the 🌙/☀️ button in the header to switch between light and dark themes
+   - **Language Toggle**: Click the EN/FR button in the header to switch between English and French
+   - Preferences are saved and persist across sessions
+4. **Browse Catalogs** (No login required):
    - You can browse catalogs and build quotes without authentication
    - Select from supported regions: cloudgouv-eu-west-1, eu-west-2, us-west-1, us-east-2
-4. **Login** (Required for authenticated features):
+5. **Login** (Required for authenticated features):
    - Access Key
    - Secret Key
    - **Region (mandatory)** - must be one of: cloudgouv-eu-west-1, eu-west-2, us-west-1, us-east-2
@@ -242,6 +260,16 @@ For detailed testing instructions, see [tests/TESTING.md](tests/TESTING.md).
 2. Select region and filters
 3. View current resource costs
 4. Export in desired format (human/json/csv/ods)
+
+#### User Interface Customization
+- **Theme Switching**: Use the theme toggle button (🌙/☀️) in the header to switch between light and dark themes
+  - Light theme is the default
+  - Theme preference is saved in browser localStorage
+  - Applies to all pages and persists across sessions
+- **Language Switching**: Use the language toggle button (EN/FR) in the header to switch between English and French
+  - English is the default
+  - Language preference is saved in browser localStorage
+  - All UI text, labels, buttons, and messages are translated
 
 ## API Documentation
 
