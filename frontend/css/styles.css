@@ -13,6 +13,13 @@
     --text-color: #212529;
     --border-color: #dee2e6;
     --input-bg: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-tertiary: #f8f9fa;
+    --bg-hover: #e9ecef;
+    --bg-active: #e7f3ff;
+    --text-secondary: #6c757d;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --overlay-color: rgba(0, 0, 0, 0.5);
     
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
@@ -22,6 +29,30 @@
     
     --border-radius: 4px;
     --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark theme variables */
+[data-theme="dark"] {
+    --primary-color: #4a9eff;
+    --secondary-color: #9ca3af;
+    --success-color: #48bb78;
+    --danger-color: #f56565;
+    --warning-color: #ed8936;
+    --info-color: #38b2ac;
+    
+    --bg-color: #1a1a1a;
+    --text-color: #e5e7eb;
+    --border-color: #374151;
+    --input-bg: #2d2d2d;
+    --bg-secondary: #121212;
+    --bg-tertiary: #1f1f1f;
+    --bg-hover: #2d2d2d;
+    --bg-active: #1e3a5f;
+    --text-secondary: #9ca3af;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --overlay-color: rgba(0, 0, 0, 0.7);
+    
+    --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -35,7 +66,8 @@ body {
     font-size: 14px;
     line-height: 1.5;
     color: var(--text-color);
-    background-color: #f5f5f5;
+    background-color: var(--bg-secondary);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .screen {
@@ -94,6 +126,7 @@ body {
     border-radius: var(--border-radius);
     font-size: 14px;
     background-color: var(--input-bg);
+    color: var(--text-color);
 }
 
 .form-group input:focus,
@@ -112,7 +145,7 @@ body {
 
 .error-message {
     padding: var(--spacing-sm);
-    background-color: #fee;
+    background-color: rgba(220, 53, 69, 0.1);
     border: 1px solid var(--danger-color);
     border-radius: var(--border-radius);
     color: var(--danger-color);
@@ -141,6 +174,11 @@ body {
 
 .btn-primary:hover {
     background-color: #0052a3;
+    filter: brightness(0.9);
+}
+
+[data-theme="dark"] .btn-primary:hover {
+    filter: brightness(1.1);
 }
 
 .btn-primary:disabled {
@@ -155,6 +193,11 @@ body {
 
 .btn-secondary:hover {
     background-color: #5a6268;
+    filter: brightness(0.9);
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+    filter: brightness(1.1);
 }
 
 .spinner {
@@ -199,6 +242,34 @@ body {
     gap: var(--spacing-md);
 }
 
+/* Theme and Language Toggle Buttons */
+.btn-toggle {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-color);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    min-width: 60px;
+    justify-content: center;
+}
+
+.btn-toggle:hover {
+    background-color: var(--bg-tertiary);
+    border-color: var(--primary-color);
+}
+
+.btn-toggle.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
 .session-info {
     color: var(--secondary-color);
     font-size: 12px;
@@ -225,7 +296,7 @@ body {
 
 .tab-button:hover {
     color: var(--primary-color);
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
 }
 
 .tab-button.active {
@@ -237,7 +308,7 @@ body {
 .main-content {
     flex: 1;
     padding: var(--spacing-lg);
-    background-color: #f5f5f5;
+    background-color: var(--bg-secondary);
 }
 
 .tab-panel {
@@ -270,7 +341,7 @@ body {
 }
 
 .resource-selection-form {
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
     padding: var(--spacing-md);
     border-radius: var(--border-radius);
 }
@@ -305,7 +376,7 @@ body {
 }
 
 .quote-table thead {
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
 }
 
 .quote-table th {
@@ -322,7 +393,7 @@ body {
 }
 
 .quote-table tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--bg-hover);
 }
 
 .empty-message {
@@ -345,16 +416,21 @@ body {
 
 .btn-remove:hover {
     background-color: #c82333;
+    filter: brightness(0.9);
+}
+
+[data-theme="dark"] .btn-remove:hover {
+    filter: brightness(1.1);
 }
 
 .quote-config {
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
     padding: var(--spacing-md);
     border-radius: var(--border-radius);
 }
 
 .quote-summary-content {
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
     padding: var(--spacing-lg);
     border-radius: var(--border-radius);
 }
@@ -382,7 +458,7 @@ body {
     padding: var(--spacing-md);
     text-align: center;
     color: var(--info-color);
-    background-color: #d1ecf1;
+    background-color: rgba(23, 162, 184, 0.1);
     border: 1px solid var(--info-color);
     border-radius: var(--border-radius);
     margin-bottom: var(--spacing-md);
@@ -392,7 +468,7 @@ body {
 .progress-container {
     margin-bottom: var(--spacing-md);
     padding: var(--spacing-md);
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
 }
@@ -400,7 +476,7 @@ body {
 .progress-bar-wrapper {
     width: 100%;
     height: 24px;
-    background-color: #e9ecef;
+    background-color: var(--bg-hover);
     border-radius: var(--border-radius);
     overflow: hidden;
     position: relative;
@@ -467,7 +543,7 @@ body {
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-md);
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     margin-bottom: var(--spacing-md);
@@ -484,7 +560,8 @@ body {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     font-size: 14px;
-    background-color: white;
+    background-color: var(--input-bg);
+    color: var(--text-color);
 }
 
 .quote-selector:focus {
@@ -512,7 +589,7 @@ body {
 
 /* Quotes List */
 .quotes-list {
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     padding: var(--spacing-md);
@@ -528,7 +605,7 @@ body {
 }
 
 .quote-list-item:hover {
-    background-color: #e9ecef;
+    background-color: var(--bg-hover);
 }
 
 .quote-list-item:last-child {
@@ -536,12 +613,13 @@ body {
 }
 
 .quote-list-item-active {
-    background-color: #e7f3ff;
+    background-color: var(--bg-active);
     border-left: 3px solid var(--primary-color);
 }
 
 .quote-list-item-active:hover {
-    background-color: #d0e7ff;
+    background-color: var(--bg-active);
+    opacity: 0.9;
 }
 
 .quote-list-info {
@@ -577,6 +655,11 @@ body {
 
 .btn-danger:hover {
     background-color: #c82333;
+    filter: brightness(0.9);
+}
+
+[data-theme="dark"] .btn-danger:hover {
+    filter: brightness(1.1);
 }
 
 /* Modal Styles */
@@ -598,20 +681,21 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--overlay-color);
 }
 
 .modal-content {
     position: relative;
-    background-color: white;
+    background-color: var(--bg-color);
     border-radius: var(--border-radius);
     padding: var(--spacing-lg);
     max-width: 500px;
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px var(--shadow-color);
     z-index: 1001;
+    color: var(--text-color);
 }
 
 .modal-content h3 {
@@ -720,7 +804,7 @@ body {
 
 .summary-card {
     padding: var(--spacing-lg);
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     text-align: center;
@@ -728,7 +812,7 @@ body {
 
 .summary-card-label {
     font-size: 12px;
-    color: #6c757d;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: var(--spacing-xs);
@@ -753,7 +837,7 @@ body {
 }
 
 .data-table thead {
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
     border-bottom: 2px solid var(--border-color);
 }
 
@@ -771,7 +855,7 @@ body {
 }
 
 .data-table tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--bg-hover);
 }
 
 .data-table tbody tr:last-child td {
@@ -818,7 +902,7 @@ body {
 
 /* Cost Evaluation Styles */
 .cost-filters {
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     padding: var(--spacing-md);

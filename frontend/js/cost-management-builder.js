@@ -198,9 +198,13 @@ const CostManagementBuilder = {
             const minutes = Math.floor(estimatedRemaining / 60);
             const seconds = estimatedRemaining % 60;
             if (minutes > 0) {
-                progressTime.textContent = `Estimated time remaining: ${minutes}m ${seconds}s`;
+                progressTime.textContent = typeof i18n !== 'undefined' 
+                    ? i18n.t('cm.progress.estimated', { time: `${minutes}m ${seconds}s` })
+                    : `Estimated time remaining: ${minutes}m ${seconds}s`;
             } else {
-                progressTime.textContent = `Estimated time remaining: ${seconds}s`;
+                progressTime.textContent = typeof i18n !== 'undefined' 
+                    ? i18n.t('cm.progress.estimated', { time: `${seconds}s` })
+                    : `Estimated time remaining: ${seconds}s`;
             }
         } else if (progressTime) {
             progressTime.textContent = '';
@@ -216,7 +220,7 @@ const CostManagementBuilder = {
             
             // Validate dates
             if (!this.filters.from_date || !this.filters.to_date) {
-                this.showError('Please select both from and to dates');
+                this.showError(typeof i18n !== 'undefined' ? i18n.t('common.error') : 'Please select both from and to dates');
                 return;
             }
             
@@ -336,7 +340,7 @@ const CostManagementBuilder = {
         }
         
         if (this.currentBudgets.length === 0) {
-            listContainer.innerHTML = '<p class="empty-message">No budgets created. Click "Create Budget" to get started.</p>';
+            listContainer.innerHTML = `<p class="empty-message">${typeof i18n !== 'undefined' ? i18n.t('cm.noBudgets') : 'No budgets created. Click "Create Budget" to get started.'}</p>`;
             return;
         }
         
@@ -408,8 +412,8 @@ const CostManagementBuilder = {
         if (budgetId) {
             const budget = this.currentBudgets.find(b => b.budget_id === budgetId);
             if (budget) {
-                title.textContent = 'Edit Budget';
-                saveBtn.textContent = 'Update';
+                title.textContent = typeof i18n !== 'undefined' ? i18n.t('cm.budgetModal.edit') : 'Edit Budget';
+                saveBtn.textContent = typeof i18n !== 'undefined' ? i18n.t('cm.budgetModal.updateBtn') : 'Update';
                 document.getElementById('cm-budget-name').value = budget.name;
                 document.getElementById('cm-budget-amount').value = budget.amount;
                 document.getElementById('cm-budget-period-type').value = budget.period_type;
@@ -417,8 +421,8 @@ const CostManagementBuilder = {
                 document.getElementById('cm-budget-end-date').value = budget.end_date || '';
             }
         } else {
-            title.textContent = 'Create Budget';
-            saveBtn.textContent = 'Create';
+            title.textContent = typeof i18n !== 'undefined' ? i18n.t('cm.budgetModal.create') : 'Create Budget';
+            saveBtn.textContent = typeof i18n !== 'undefined' ? i18n.t('cm.budgetModal.createBtn') : 'Create';
             document.getElementById('cm-budget-name').value = '';
             document.getElementById('cm-budget-amount').value = '';
             document.getElementById('cm-budget-period-type').value = 'monthly';
@@ -842,7 +846,7 @@ const CostManagementBuilder = {
         const sortedPeriods = Object.keys(periodData).sort();
         
         if (sortedPeriods.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="empty-message">No data available</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="5" class="empty-message">${typeof i18n !== 'undefined' ? i18n.t('common.empty') : 'No data available'}</td></tr>`;
             return;
         }
         

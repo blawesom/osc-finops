@@ -60,9 +60,9 @@ const QuoteBuilder = {
             console.error('Failed to load/create quote:', error);
             // If auth error, user needs to login
             if (error.message && error.message.includes('Authentication')) {
-                this.showError('Please login to manage quotes');
+                this.showError(typeof i18n !== 'undefined' ? i18n.t('common.error') : 'Please login to manage quotes');
             } else {
-                this.showError('Failed to initialize quote');
+                this.showError(typeof i18n !== 'undefined' ? i18n.t('common.error') : 'Failed to initialize quote');
             }
         }
     },
@@ -160,7 +160,7 @@ const QuoteBuilder = {
         const resourceSelect = document.getElementById('quote-resource');
         if (!resourceSelect || !this.catalog) return;
         
-        resourceSelect.innerHTML = '<option value="">Select a resource...</option>';
+        resourceSelect.innerHTML = `<option value="">${typeof i18n !== 'undefined' ? i18n.t('quotes.selectResource') : 'Select a resource...'}</option>`;
         
         const resources = CatalogService.parseResources(this.catalog);
         
@@ -318,7 +318,7 @@ const QuoteBuilder = {
         const items = this.currentQuote.items || [];
         
         if (items.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="empty-message">No items in quote. Add resources to get started.</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-message">${typeof i18n !== 'undefined' ? i18n.t('quotes.noItems') : 'No items in quote. Add resources to get started.'}</td></tr>`;
             return;
         }
         
@@ -461,7 +461,7 @@ const QuoteBuilder = {
         if (activeIndicator && this.currentQuote) {
             if (this.currentQuote.status === 'active') {
                 activeIndicator.style.display = 'inline';
-                activeIndicator.textContent = 'Active';
+                activeIndicator.textContent = typeof i18n !== 'undefined' ? i18n.t('quotes.active') : 'Active';
             } else {
                 activeIndicator.style.display = 'none';
             }
@@ -512,14 +512,14 @@ const QuoteBuilder = {
             if (quotes.length === 0) {
                 const option = document.createElement('option');
                 option.value = '';
-                option.textContent = 'No quotes available';
+                    option.textContent = typeof i18n !== 'undefined' ? i18n.t('common.empty') : 'No quotes available';
                 selector.appendChild(option);
             }
         } catch (error) {
             console.error('Failed to update quote selector:', error);
             const selector = document.getElementById('quote-selector');
             if (selector) {
-                selector.innerHTML = '<option value="">Error loading quotes</option>';
+                selector.innerHTML = `<option value="">${typeof i18n !== 'undefined' ? i18n.t('common.error') : 'Error loading quotes'}</option>`;
             }
         }
     },
@@ -734,7 +734,7 @@ const QuoteBuilder = {
         
         const newName = nameInput.value.trim();
         if (!newName) {
-            this.showError('Quote name cannot be empty');
+            this.showError(typeof i18n !== 'undefined' ? i18n.t('common.error') : 'Quote name cannot be empty');
             return;
         }
         

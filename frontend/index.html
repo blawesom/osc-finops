@@ -11,36 +11,36 @@
         <!-- Login Screen (shown when not authenticated) -->
         <div id="login-screen" class="screen">
             <div class="login-container">
-                <h1>OSC-FinOps</h1>
-                <p class="subtitle">Financial Operations for Outscale</p>
+                <h1 data-i18n="login.title">OSC-FinOps</h1>
+                <p class="subtitle" data-i18n="login.subtitle">Financial Operations for Outscale</p>
                 
                 <form id="login-form">
                     <div class="form-group">
-                        <label for="access-key">Access Key</label>
+                        <label for="access-key" data-i18n="login.accessKey">Access Key</label>
                         <input type="text" id="access-key" name="access_key" required autocomplete="off">
                     </div>
                     
                     <div class="form-group">
-                        <label for="secret-key">Secret Key</label>
+                        <label for="secret-key" data-i18n="login.secretKey">Secret Key</label>
                         <input type="password" id="secret-key" name="secret_key" required autocomplete="off">
                     </div>
                     
                     <div class="form-group">
-                        <label for="region">Region <span class="required">*</span></label>
+                        <label for="region">Region <span class="required" data-i18n="login.regionRequired">*</span></label>
                         <select id="region" name="region" required>
-                            <option value="">Select a region...</option>
+                            <option value="" data-i18n="login.selectRegion">Select a region...</option>
                             <option value="cloudgouv-eu-west-1">cloudgouv-eu-west-1</option>
                             <option value="eu-west-2">eu-west-2</option>
                             <option value="us-west-1">us-west-1</option>
                             <option value="us-east-2">us-east-2</option>
                         </select>
-                        <small class="help-text">Credentials will be validated for the selected region</small>
+                        <small class="help-text" data-i18n="login.regionHelp">Credentials will be validated for the selected region</small>
                     </div>
                     
                     <div id="login-error" class="error-message" style="display: none;"></div>
                     
                     <button type="submit" id="login-button" class="btn btn-primary">
-                        <span id="login-button-text">Login</span>
+                        <span id="login-button-text" data-i18n="login.button">Login</span>
                         <span id="login-button-spinner" class="spinner" style="display: none;"></span>
                     </button>
                 </form>
@@ -50,33 +50,35 @@
         <!-- Main Application (shown when authenticated) -->
         <div id="main-app" class="screen" style="display: none;">
             <header class="app-header">
-                <h1>OSC FinOps Portal</h1>
+                <h1 data-i18n="header.title">OSC FinOps Portal</h1>
                 <div class="header-actions">
                     <span id="session-info" class="session-info"></span>
-                    <button id="logout-button" class="btn btn-secondary">Logout</button>
+                    <button id="language-toggle" class="btn btn-toggle" aria-label="Switch language">FR</button>
+                    <button id="theme-toggle" class="btn btn-toggle" aria-label="Switch theme">🌙</button>
+                    <button id="logout-button" class="btn btn-secondary" data-i18n="header.logout">Logout</button>
                 </div>
             </header>
             
             <nav class="tab-navigation">
-                <button class="tab-button active" data-tab="quotes">Quotes</button>
-                <button class="tab-button" data-tab="cost">Cost</button>
-                <button class="tab-button" data-tab="cost-management">Cost Management</button>
+                <button class="tab-button active" data-tab="quotes" data-i18n="tab.quotes">Quotes</button>
+                <button class="tab-button" data-tab="cost" data-i18n="tab.cost">Cost</button>
+                <button class="tab-button" data-tab="cost-management" data-i18n="tab.costManagement">Cost Management</button>
             </nav>
             
             <main class="main-content">
                 <div id="tab-content">
                     <div class="tab-panel active" id="tab-quotes">
-                        <div id="quote-loading" class="loading-message" style="display: none;">Loading...</div>
+                        <div id="quote-loading" class="loading-message" style="display: none;" data-i18n="common.loading">Loading...</div>
                         <div id="quote-error" class="error-message" style="display: none;"></div>
                         
                         <!-- Quote Selector -->
                         <section class="quote-section">
                             <div class="quote-selector-container">
-                                <label for="quote-selector">Current Quote:</label>
+                                <label for="quote-selector" data-i18n="quotes.currentQuote">Current Quote:</label>
                                 <select id="quote-selector" class="quote-selector">
-                                    <option value="">Loading quotes...</option>
+                                    <option value="" data-i18n="quotes.loading">Loading quotes...</option>
                                 </select>
-                                <button class="btn btn-small" onclick="QuoteBuilder.showNewQuoteModal()">New Quote</button>
+                                <button class="btn btn-small" onclick="QuoteBuilder.showNewQuoteModal()" data-i18n="quotes.newQuote">New Quote</button>
                             </div>
                         </section>
                         
@@ -84,15 +86,15 @@
                         <section class="quote-section">
                             <div class="quote-header">
                                 <div class="quote-header-info">
-                                    <h2 id="quote-name-display" style="margin: 0; display: inline;">My Quote</h2>
-                                    <span id="active-quote-indicator" class="badge badge-active" style="display: none; margin-left: 8px;">Active</span>
+                                    <h2 id="quote-name-display" style="margin: 0; display: inline;" data-i18n="quotes.myQuote">My Quote</h2>
+                                    <span id="active-quote-indicator" class="badge badge-active" style="display: none; margin-left: 8px;" data-i18n="quotes.active">Active</span>
                                     <div id="quote-metadata" style="margin-top: 4px;">
                                         <small style="color: #666;"></small>
                                     </div>
                                 </div>
                                 <div class="quote-header-actions">
-                                    <button class="btn btn-small" onclick="QuoteBuilder.showRenameQuoteModal()">Rename</button>
-                                    <button class="btn btn-small btn-danger" onclick="QuoteBuilder.showDeleteCurrentQuoteModal()">Delete</button>
+                                    <button class="btn btn-small" onclick="QuoteBuilder.showRenameQuoteModal()" data-i18n="quotes.rename">Rename</button>
+                                    <button class="btn btn-small btn-danger" onclick="QuoteBuilder.showDeleteCurrentQuoteModal()" data-i18n="quotes.delete">Delete</button>
                                 </div>
                             </div>
                         </section>
@@ -101,11 +103,11 @@
                         
                         <!-- Resource Selection -->
                         <section class="quote-section">
-                            <h2>Add Resource to Quote</h2>
+                            <h2 data-i18n="quotes.addResource">Add Resource to Quote</h2>
                             <div class="resource-selection-form">
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="quote-region">Region</label>
+                                        <label for="quote-region" data-i18n="quotes.region">Region</label>
                                         <select id="quote-region">
                                             <option value="cloudgouv-eu-west-1">cloudgouv-eu-west-1</option>
                                             <option value="eu-west-2" selected>eu-west-2</option>
@@ -115,9 +117,9 @@
                                     </div>
                                     
                                     <div class="form-group">
-                                        <label for="quote-category">Category</label>
+                                        <label for="quote-category" data-i18n="quotes.category">Category</label>
                                         <select id="quote-category">
-                                            <option value="all" selected>All Categories</option>
+                                            <option value="all" selected data-i18n="quotes.allCategories">All Categories</option>
                                             <option value="Compute">Compute</option>
                                             <option value="Storage">Storage</option>
                                             <option value="Network">Network</option>
@@ -126,25 +128,25 @@
                                     </div>
                                     
                                     <div class="form-group">
-                                        <label for="quote-resource">Resource</label>
+                                        <label for="quote-resource" data-i18n="quotes.resource">Resource</label>
                                         <select id="quote-resource">
-                                            <option value="">Select a resource...</option>
+                                            <option value="" data-i18n="quotes.selectResource">Select a resource...</option>
                                         </select>
                                     </div>
                                     
                                     <div class="form-group">
-                                        <label for="resource-quantity">Quantity</label>
+                                        <label for="resource-quantity" data-i18n="quotes.quantity">Quantity</label>
                                         <input type="number" id="resource-quantity" min="1" value="1" step="1">
                                     </div>
                                     
                                     <div class="form-group">
-                                        <label>Unit Price</label>
+                                        <label data-i18n="quotes.unitPrice">Unit Price</label>
                                         <div id="resource-unit-price" class="unit-price-display">-</div>
                                     </div>
                                     
                                     <div class="form-group">
                                         <label>&nbsp;</label>
-                                        <button id="add-resource-btn" class="btn btn-primary" disabled>Add to Quote</button>
+                                        <button id="add-resource-btn" class="btn btn-primary" disabled data-i18n="quotes.addToQuote">Add to Quote</button>
                                     </div>
                                 </div>
                             </div>
@@ -152,21 +154,21 @@
                         
                         <!-- Quote Items -->
                         <section class="quote-section">
-                            <h2>Quote Items</h2>
+                            <h2 data-i18n="quotes.items">Quote Items</h2>
                             <div class="table-container">
                                 <table class="quote-table">
                                     <thead>
                                         <tr>
-                                            <th>Resource Name</th>
-                                            <th>Region</th>
-                                            <th>Quantity</th>
-                                            <th>Unit Price</th>
-                                            <th>Actions</th>
+                                            <th data-i18n="quotes.resourceName">Resource Name</th>
+                                            <th data-i18n="quotes.region">Region</th>
+                                            <th data-i18n="quotes.quantityCol">Quantity</th>
+                                            <th data-i18n="quotes.unitPriceCol">Unit Price</th>
+                                            <th data-i18n="quotes.actions">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="quote-items-body">
                                         <tr>
-                                            <td colspan="5" class="empty-message">No items in quote. Add resources to get started.</td>
+                                            <td colspan="5" class="empty-message" data-i18n="quotes.noItems">No items in quote. Add resources to get started.</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -175,37 +177,37 @@
                         
                         <!-- Quote Configuration -->
                         <section class="quote-section">
-                            <h2>Quote Configuration</h2>
+                            <h2 data-i18n="quotes.config">Quote Configuration</h2>
                             <div class="quote-config">
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="quote-duration">Duration</label>
+                                        <label for="quote-duration" data-i18n="quotes.duration">Duration</label>
                                         <input type="number" id="quote-duration" min="1" value="1" step="1">
                                     </div>
                                     
                                     <div class="form-group">
-                                        <label for="quote-duration-unit">Duration Unit</label>
+                                        <label for="quote-duration-unit" data-i18n="quotes.durationUnit">Duration Unit</label>
                                         <select id="quote-duration-unit">
-                                            <option value="hours">Hours</option>
-                                            <option value="days">Days</option>
-                                            <option value="weeks">Weeks</option>
-                                            <option value="months" selected>Months</option>
-                                            <option value="years">Years</option>
+                                            <option value="hours" data-i18n="quotes.hours">Hours</option>
+                                            <option value="days" data-i18n="quotes.days">Days</option>
+                                            <option value="weeks" data-i18n="quotes.weeks">Weeks</option>
+                                            <option value="months" selected data-i18n="quotes.months">Months</option>
+                                            <option value="years" data-i18n="quotes.years">Years</option>
                                         </select>
                                     </div>
                                     
                                     <div class="form-group">
-                                        <label for="quote-global-discount">Global Discount (%)</label>
+                                        <label for="quote-global-discount" data-i18n="quotes.globalDiscount">Global Discount (%)</label>
                                         <input type="number" id="quote-global-discount" min="0" max="100" value="0" step="0.1">
                                     </div>
                                     
                                     <div class="form-group">
-                                        <label for="quote-commitment">Commitment Period</label>
+                                        <label for="quote-commitment" data-i18n="quotes.commitment">Commitment Period</label>
                                         <select id="quote-commitment">
-                                            <option value="none" selected>None</option>
-                                            <option value="1month">1 Month</option>
-                                            <option value="1year">1 Year</option>
-                                            <option value="3years">3 Years</option>
+                                            <option value="none" selected data-i18n="quotes.commitmentNone">None</option>
+                                            <option value="1month" data-i18n="quotes.commitment1Month">1 Month</option>
+                                            <option value="1year" data-i18n="quotes.commitment1Year">1 Year</option>
+                                            <option value="3years" data-i18n="quotes.commitment3Years">3 Years</option>
                                         </select>
                                     </div>
                                 </div>
@@ -215,11 +217,11 @@
                         <!-- Quote Summary -->
                         <section class="quote-section">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                                <h2 style="margin: 0;">Cost Summary</h2>
-                                <button id="export-csv-btn" class="btn btn-secondary" style="display: none;">Export to CSV</button>
+                                <h2 style="margin: 0;" data-i18n="quotes.summary">Cost Summary</h2>
+                                <button id="export-csv-btn" class="btn btn-secondary" style="display: none;" data-i18n="quotes.exportCsv">Export to CSV</button>
                             </div>
                             <div id="quote-summary-content" class="quote-summary-content">
-                                <p class="empty-message">Add resources to see cost summary</p>
+                                <p class="empty-message" data-i18n="quotes.noSummary">Add resources to see cost summary</p>
                             </div>
                         </section>
                         
@@ -227,15 +229,15 @@
                         <div id="new-quote-modal" class="modal" style="display: none;">
                             <div class="modal-overlay" onclick="QuoteBuilder.hideNewQuoteModal()"></div>
                             <div class="modal-content">
-                                <h3>Create New Quote</h3>
-                                <p>The current quote will be automatically saved with its current name.</p>
+                                <h3 data-i18n="quotes.newQuoteModal.title">Create New Quote</h3>
+                                <p data-i18n="quotes.newQuoteModal.message">The current quote will be automatically saved with its current name.</p>
                                 <div class="form-group">
-                                    <label for="new-quote-name-input">Quote Name</label>
-                                    <input type="text" id="new-quote-name-input" placeholder="Enter quote name" class="form-input">
+                                    <label for="new-quote-name-input" data-i18n="quotes.newQuoteModal.name">Quote Name</label>
+                                    <input type="text" id="new-quote-name-input" data-i18n-placeholder="quotes.newQuoteModal.placeholder" placeholder="Enter quote name" class="form-input">
                                 </div>
                                 <div class="modal-actions">
-                                    <button class="btn btn-secondary" onclick="QuoteBuilder.hideNewQuoteModal()">Cancel</button>
-                                    <button class="btn btn-primary" onclick="QuoteBuilder.createNewQuoteFromModal()">Create</button>
+                                    <button class="btn btn-secondary" onclick="QuoteBuilder.hideNewQuoteModal()" data-i18n="quotes.newQuoteModal.cancel">Cancel</button>
+                                    <button class="btn btn-primary" onclick="QuoteBuilder.createNewQuoteFromModal()" data-i18n="quotes.newQuoteModal.create">Create</button>
                                 </div>
                             </div>
                         </div>
@@ -244,15 +246,15 @@
                         <div id="rename-quote-modal" class="modal" style="display: none;">
                             <div class="modal-overlay" onclick="QuoteBuilder.hideRenameQuoteModal()"></div>
                             <div class="modal-content">
-                                <h3>Rename Quote</h3>
-                                <p>Are you sure you want to rename this quote?</p>
+                                <h3 data-i18n="quotes.renameModal.title">Rename Quote</h3>
+                                <p data-i18n="quotes.renameModal.message">Are you sure you want to rename this quote?</p>
                                 <div class="form-group">
-                                    <label for="rename-quote-name-input">New Quote Name</label>
-                                    <input type="text" id="rename-quote-name-input" placeholder="Enter new quote name" class="form-input">
+                                    <label for="rename-quote-name-input" data-i18n="quotes.renameModal.name">New Quote Name</label>
+                                    <input type="text" id="rename-quote-name-input" data-i18n-placeholder="quotes.renameModal.placeholder" placeholder="Enter new quote name" class="form-input">
                                 </div>
                                 <div class="modal-actions">
-                                    <button class="btn btn-secondary" onclick="QuoteBuilder.hideRenameQuoteModal()">Cancel</button>
-                                    <button class="btn btn-primary" onclick="QuoteBuilder.confirmRenameQuote()">Rename</button>
+                                    <button class="btn btn-secondary" onclick="QuoteBuilder.hideRenameQuoteModal()" data-i18n="quotes.newQuoteModal.cancel">Cancel</button>
+                                    <button class="btn btn-primary" onclick="QuoteBuilder.confirmRenameQuote()" data-i18n="quotes.renameModal.rename">Rename</button>
                                 </div>
                             </div>
                         </div>
@@ -261,30 +263,30 @@
                         <div id="delete-current-quote-modal" class="modal" style="display: none;">
                             <div class="modal-overlay" onclick="QuoteBuilder.hideDeleteCurrentQuoteModal()"></div>
                             <div class="modal-content">
-                                <h3>Delete Quote</h3>
-                                <p>Are you sure you want to delete "<span id="delete-quote-name-display"></span>"?</p>
-                                <p style="color: var(--danger-color); font-weight: bold;">This action cannot be undone.</p>
+                                <h3 data-i18n="quotes.deleteModal.title">Delete Quote</h3>
+                                <p id="delete-quote-message">Are you sure you want to delete "<span id="delete-quote-name-display"></span>"?</p>
+                                <p style="color: var(--danger-color); font-weight: bold;" data-i18n="quotes.deleteModal.warning">This action cannot be undone.</p>
                                 <div class="modal-actions">
-                                    <button class="btn btn-secondary" onclick="QuoteBuilder.hideDeleteCurrentQuoteModal()">Cancel</button>
-                                    <button class="btn btn-danger" onclick="QuoteBuilder.confirmDeleteCurrentQuote()">Delete</button>
+                                    <button class="btn btn-secondary" onclick="QuoteBuilder.hideDeleteCurrentQuoteModal()" data-i18n="common.cancel">Cancel</button>
+                                    <button class="btn btn-danger" onclick="QuoteBuilder.confirmDeleteCurrentQuote()" data-i18n="quotes.deleteModal.delete">Delete</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <div class="tab-panel" id="tab-cost" style="display: none;">
-                        <h2>Current Cost Evaluation</h2>
-                        <div id="cost-loading" class="loading-message" style="display: none;">Loading cost data...</div>
+                        <h2 data-i18n="cost.title">Current Cost Evaluation</h2>
+                        <div id="cost-loading" class="loading-message" style="display: none;" data-i18n="cost.loading">Loading cost data...</div>
                         <div id="cost-error" class="error-message" style="display: none;"></div>
 
                         <!-- Filters -->
                         <section class="cost-filters">
-                            <h3>Filters</h3>
+                            <h3 data-i18n="cost.filters">Filters</h3>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="cost-region">Region</label>
+                                    <label for="cost-region" data-i18n="quotes.region">Region</label>
                                     <select id="cost-region" class="form-input">
-                                        <option value="">Use Session Region</option>
+                                        <option value="" data-i18n="cost.useSessionRegion">Use Session Region</option>
                                         <option value="cloudgouv-eu-west-1">cloudgouv-eu-west-1</option>
                                         <option value="eu-west-2">eu-west-2</option>
                                         <option value="us-west-1">us-west-1</option>
@@ -292,45 +294,45 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="cost-tag-key">Tag Key</label>
-                                    <input type="text" id="cost-tag-key" class="form-input" placeholder="Enter tag key">
+                                    <label for="cost-tag-key" data-i18n="cost.tagKey">Tag Key</label>
+                                    <input type="text" id="cost-tag-key" class="form-input" data-i18n-placeholder="cost.tagKeyPlaceholder" placeholder="Enter tag key">
                                 </div>
                                 <div class="form-group">
-                                    <label for="cost-tag-value">Tag Value</label>
-                                    <input type="text" id="cost-tag-value" class="form-input" placeholder="Enter tag value">
+                                    <label for="cost-tag-value" data-i18n="cost.tagValue">Tag Value</label>
+                                    <input type="text" id="cost-tag-value" class="form-input" data-i18n-placeholder="cost.tagValuePlaceholder" placeholder="Enter tag value">
                                 </div>
                                 <div class="form-group">
                                     <label>
                                         <input type="checkbox" id="cost-include-oos">
-                                        Include OOS Buckets (may take up to 10 minutes)
+                                        <span data-i18n="cost.includeOos">Include OOS Buckets (may take up to 10 minutes)</span>
                                     </label>
                                 </div>
                             </div>
                             <div class="form-actions">
-                                <button id="fetch-cost-btn" class="btn btn-primary" style="display: none;">Refresh Costs</button>
-                                <button id="export-cost-csv-btn" class="btn btn-secondary">Export CSV</button>
-                                <button id="export-cost-json-btn" class="btn btn-secondary">Export JSON</button>
+                                <button id="fetch-cost-btn" class="btn btn-primary" style="display: none;" data-i18n="cost.refresh">Refresh Costs</button>
+                                <button id="export-cost-csv-btn" class="btn btn-secondary" data-i18n="cost.exportCsv">Export CSV</button>
+                                <button id="export-cost-json-btn" class="btn btn-secondary" data-i18n="cost.exportJson">Export JSON</button>
                             </div>
                         </section>
 
                         <!-- Summary Cards -->
                         <section class="cost-summary-cards">
-                            <h3>Summary</h3>
+                            <h3 data-i18n="cost.summary">Summary</h3>
                             <div class="summary-cards">
                                 <div class="summary-card">
-                                    <div class="summary-card-label">Cost per Hour</div>
+                                    <div class="summary-card-label" data-i18n="cost.perHour">Cost per Hour</div>
                                     <div class="summary-card-value" id="cost-per-hour">$0.00</div>
                                 </div>
                                 <div class="summary-card">
-                                    <div class="summary-card-label">Cost per Month</div>
+                                    <div class="summary-card-label" data-i18n="cost.perMonth">Cost per Month</div>
                                     <div class="summary-card-value" id="cost-per-month">$0.00</div>
                                 </div>
                                 <div class="summary-card">
-                                    <div class="summary-card-label">Cost per Year</div>
+                                    <div class="summary-card-label" data-i18n="cost.perYear">Cost per Year</div>
                                     <div class="summary-card-value" id="cost-per-year">$0.00</div>
                                 </div>
                                 <div class="summary-card">
-                                    <div class="summary-card-label">Resource Count</div>
+                                    <div class="summary-card-label" data-i18n="cost.resourceCount">Resource Count</div>
                                     <div class="summary-card-value" id="cost-resource-count">0</div>
                                 </div>
                             </div>
@@ -338,23 +340,23 @@
 
                         <!-- Cost Table -->
                         <section class="cost-data">
-                            <h3>Resource Costs</h3>
+                            <h3 data-i18n="cost.resources">Resource Costs</h3>
                             <div class="table-container">
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>Resource ID</th>
-                                            <th>Resource Type</th>
-                                            <th>Region</th>
-                                            <th>Zone</th>
-                                            <th>Cost per Hour</th>
-                                            <th>Cost per Month</th>
-                                            <th>Cost per Year</th>
+                                            <th data-i18n="cost.resourceId">Resource ID</th>
+                                            <th data-i18n="cost.resourceType">Resource Type</th>
+                                            <th data-i18n="quotes.region">Region</th>
+                                            <th data-i18n="cost.zone">Zone</th>
+                                            <th data-i18n="cost.perHour">Cost per Hour</th>
+                                            <th data-i18n="cost.perMonth">Cost per Month</th>
+                                            <th data-i18n="cost.perYear">Cost per Year</th>
                                         </tr>
                                     </thead>
                                     <tbody id="cost-table-body">
                                         <tr>
-                                            <td colspan="7" class="empty-message">Loading cost data...</td>
+                                            <td colspan="7" class="empty-message" data-i18n="cost.loading">Loading cost data...</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -365,15 +367,15 @@
                         <section class="cost-breakdown">
                             <div class="breakdown-grid">
                                 <div class="breakdown-section">
-                                    <h3>Breakdown by Resource Type</h3>
+                                    <h3 data-i18n="cost.breakdownByType">Breakdown by Resource Type</h3>
                                     <ul id="breakdown-by-type-list" class="breakdown-list">
-                                        <li class="empty-message">No breakdown data available.</li>
+                                        <li class="empty-message" data-i18n="cost.noBreakdown">No breakdown data available.</li>
                                     </ul>
                                 </div>
                                 <div class="breakdown-section">
-                                    <h3>Breakdown by Category</h3>
+                                    <h3 data-i18n="cost.breakdownByCategory">Breakdown by Category</h3>
                                     <ul id="breakdown-by-category-list" class="breakdown-list">
-                                        <li class="empty-message">No breakdown data available.</li>
+                                        <li class="empty-message" data-i18n="cost.noBreakdown">No breakdown data available.</li>
                                     </ul>
                                 </div>
                             </div>
@@ -382,7 +384,7 @@
                     
                     <!-- Cost Management Tab (Unified View) -->
                     <div class="tab-panel" id="tab-cost-management" style="display: none;">
-                        <div id="cost-management-loading" class="loading-message" style="display: none;">Loading cost management data...</div>
+                        <div id="cost-management-loading" class="loading-message" style="display: none;" data-i18n="cm.loading">Loading cost management data...</div>
                         <div id="cost-management-error" class="error-message" style="display: none;"></div>
                         
                         <!-- Progress Bar -->
@@ -397,23 +399,23 @@
                         
                         <!-- Filters Section -->
                         <section class="cost-management-section">
-                            <h2>Filters</h2>
+                            <h2 data-i18n="cm.filters">Filters</h2>
                             <div class="cost-management-filters">
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="cm-from-date">From Date</label>
+                                        <label for="cm-from-date" data-i18n="cm.fromDate">From Date</label>
                                         <input type="date" id="cm-from-date" class="form-input">
                                     </div>
                                     <div class="form-group">
-                                        <label for="cm-to-date">To Date</label>
+                                        <label for="cm-to-date" data-i18n="cm.toDate">To Date</label>
                                         <input type="date" id="cm-to-date" class="form-input">
                                     </div>
                                     <div class="form-group">
-                                        <label for="cm-granularity">Granularity</label>
+                                        <label for="cm-granularity" data-i18n="cm.granularity">Granularity</label>
                                         <select id="cm-granularity" class="form-input">
-                                            <option value="day">Day</option>
-                                            <option value="week">Week</option>
-                                            <option value="month">Month</option>
+                                            <option value="day" data-i18n="cm.granularityDay">Day</option>
+                                            <option value="week" data-i18n="cm.granularityWeek">Week</option>
+                                            <option value="month" data-i18n="cm.granularityMonth">Month</option>
                                         </select>
                                     </div>
                                     <!-- <div class="form-group">
@@ -428,40 +430,40 @@
                                     </div>-->
                                 </div>
                                 <div class="form-row">
-                                    <button id="cm-load-btn" class="btn btn-primary">Load Data</button>
-                                    <button id="cm-export-csv" class="btn btn-secondary">Export CSV</button>
-                                    <button id="cm-export-json" class="btn btn-secondary">Export JSON</button>
+                                    <button id="cm-load-btn" class="btn btn-primary" data-i18n="cm.loadData">Load Data</button>
+                                    <button id="cm-export-csv" class="btn btn-secondary" data-i18n="cm.exportCsv">Export CSV</button>
+                                    <button id="cm-export-json" class="btn btn-secondary" data-i18n="cm.exportJson">Export JSON</button>
                                 </div>
                             </div>
                         </section>
                         
                         <!-- Budget Management Section -->
                         <section class="cost-management-section">
-                            <h2>Budgets</h2>
-                            <button id="cm-create-budget-btn" class="btn btn-primary">Create Budget</button>
+                            <h2 data-i18n="cm.budgets">Budgets</h2>
+                            <button id="cm-create-budget-btn" class="btn btn-primary" data-i18n="cm.createBudget">Create Budget</button>
                             <div id="cm-budgets-list" class="budgets-list">
-                                <p class="empty-message">No budgets created. Click "Create Budget" to get started.</p>
+                                <p class="empty-message" data-i18n="cm.noBudgets">No budgets created. Click "Create Budget" to get started.</p>
                             </div>
                         </section>
                         
                         <!-- Summary Cards -->
                         <section class="cost-management-section">
-                            <h2>Summary</h2>
+                            <h2 data-i18n="cm.summary">Summary</h2>
                             <div class="summary-cards">
                                 <div class="summary-card">
-                                    <div class="summary-card-label">Total Consumption</div>
+                                    <div class="summary-card-label" data-i18n="cm.totalConsumption">Total Consumption</div>
                                     <div class="summary-card-value" id="cm-total-consumption">$0.00</div>
                                 </div>
                                 <div class="summary-card">
-                                    <div class="summary-card-label">Total Budget</div>
+                                    <div class="summary-card-label" data-i18n="cm.totalBudget">Total Budget</div>
                                     <div class="summary-card-value" id="cm-total-budget">$0.00</div>
                                 </div>
                                 <div class="summary-card">
-                                    <div class="summary-card-label">Remaining Budget</div>
+                                    <div class="summary-card-label" data-i18n="cm.remainingBudget">Remaining Budget</div>
                                     <div class="summary-card-value" id="cm-remaining-budget">$0.00</div>
                                 </div>
                                 <div class="summary-card">
-                                    <div class="summary-card-label">Trend Direction</div>
+                                    <div class="summary-card-label" data-i18n="cm.trendDirection">Trend Direction</div>
                                     <div class="summary-card-value" id="cm-trend-direction">-</div>
                                 </div>
                             </div>
@@ -469,7 +471,7 @@
                         
                         <!-- Unified Graph -->
                         <section class="cost-management-section">
-                            <h2>Cost Analysis</h2>
+                            <h2 data-i18n="cm.analysis">Cost Analysis</h2>
                             <div style="position: relative; height: 400px;">
                                 <canvas id="cm-chart"></canvas>
                             </div>
@@ -477,21 +479,21 @@
                         
                         <!-- Data Table -->
                         <section class="cost-management-section">
-                            <h2>Period Details</h2>
+                            <h2 data-i18n="cm.periodDetails">Period Details</h2>
                             <div class="table-container">
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>Period</th>
-                                            <th>Consumption</th>
-                                            <th>Budget</th>
-                                            <th>Remaining</th>
-                                            <th>Utilization %</th>
+                                            <th data-i18n="cm.period">Period</th>
+                                            <th data-i18n="cm.consumption">Consumption</th>
+                                            <th data-i18n="cm.budget">Budget</th>
+                                            <th data-i18n="cm.remaining">Remaining</th>
+                                            <th data-i18n="cm.utilization">Utilization %</th>
                                         </tr>
                                     </thead>
                                     <tbody id="cm-table-body">
                                         <tr>
-                                            <td colspan="5" class="empty-message">Load data to see period details</td>
+                                            <td colspan="5" class="empty-message" data-i18n="cm.noData">Load data to see period details</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -503,36 +505,36 @@
                     <div id="cm-budget-modal" class="modal" style="display: none;">
                         <div class="modal-overlay" onclick="CostManagementBuilder.hideBudgetModal()"></div>
                         <div class="modal-content">
-                            <h3 id="cm-budget-modal-title">Create Budget</h3>
+                            <h3 id="cm-budget-modal-title" data-i18n="cm.budgetModal.create">Create Budget</h3>
                             <div id="cm-budget-modal-error" class="error-message" style="display: none; margin-bottom: 16px;"></div>
                             <div class="form-group">
-                                <label for="cm-budget-name">Budget Name</label>
-                                <input type="text" id="cm-budget-name" class="form-input" placeholder="Enter budget name" required>
+                                <label for="cm-budget-name" data-i18n="cm.budgetModal.name">Budget Name</label>
+                                <input type="text" id="cm-budget-name" class="form-input" data-i18n-placeholder="cm.budgetModal.namePlaceholder" placeholder="Enter budget name" required>
                             </div>
                             <div class="form-group">
-                                <label for="cm-budget-amount">Budget Amount</label>
-                                <input type="number" id="cm-budget-amount" class="form-input" min="0.01" step="0.01" placeholder="0.00" required>
+                                <label for="cm-budget-amount" data-i18n="cm.budgetModal.amount">Budget Amount</label>
+                                <input type="number" id="cm-budget-amount" class="form-input" min="0.01" step="0.01" data-i18n-placeholder="cm.budgetModal.amountPlaceholder" placeholder="0.00" required>
                             </div>
                             <div class="form-group">
-                                <label for="cm-budget-period-type">Period Type</label>
+                                <label for="cm-budget-period-type" data-i18n="cm.budgetModal.periodType">Period Type</label>
                                 <select id="cm-budget-period-type" class="form-input" required>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="quarterly">Quarterly</option>
-                                    <option value="yearly">Yearly</option>
+                                    <option value="monthly" data-i18n="cm.budgetModal.monthly">Monthly</option>
+                                    <option value="quarterly" data-i18n="cm.budgetModal.quarterly">Quarterly</option>
+                                    <option value="yearly" data-i18n="cm.budgetModal.yearly">Yearly</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="cm-budget-start-date">Start Date</label>
+                                <label for="cm-budget-start-date" data-i18n="cm.budgetModal.startDate">Start Date</label>
                                 <input type="date" id="cm-budget-start-date" class="form-input" required>
                             </div>
                             <div class="form-group">
-                                <label for="cm-budget-end-date">End Date (Optional)</label>
+                                <label for="cm-budget-end-date" data-i18n="cm.budgetModal.endDate">End Date (Optional)</label>
                                 <input type="date" id="cm-budget-end-date" class="form-input">
-                                <small style="color: #666;">Leave empty for indefinite budget</small>
+                                <small style="color: #666;" data-i18n="cm.budgetModal.endDateHelp">Leave empty for indefinite budget</small>
                             </div>
                             <div class="modal-actions">
-                                <button class="btn btn-secondary" onclick="CostManagementBuilder.hideBudgetModal()">Cancel</button>
-                                <button class="btn btn-primary" id="cm-budget-save-btn" onclick="CostManagementBuilder.saveBudget()">Create</button>
+                                <button class="btn btn-secondary" onclick="CostManagementBuilder.hideBudgetModal()" data-i18n="cm.budgetModal.cancel">Cancel</button>
+                                <button class="btn btn-primary" id="cm-budget-save-btn" onclick="CostManagementBuilder.saveBudget()" data-i18n="cm.budgetModal.createBtn">Create</button>
                             </div>
                         </div>
                     </div>
@@ -542,6 +544,7 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="/js/i18n.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/app.js"></script>
     <script src="/js/catalog.js"></script>
@@ -556,6 +559,14 @@
     <script>
         // Initialize quote builder when quotes tab is shown
         document.addEventListener('DOMContentLoaded', () => {
+            // Ensure i18n and theme are initialized
+            if (typeof i18n !== 'undefined' && !i18n.currentLanguage) {
+                i18n.init();
+            }
+            if (typeof App !== 'undefined' && App.initTheme) {
+                App.initTheme();
+            }
+            
             // Wait for auth to complete, then init quote builder
             // Only init if not already initialized (prevents duplicate event listeners)
             if (document.getElementById('main-app').style.display !== 'none' && !QuoteBuilder.initialized) {

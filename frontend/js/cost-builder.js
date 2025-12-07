@@ -149,7 +149,7 @@ const CostBuilder = {
         const resources = this.currentData?.resources || [];
         
         if (resources.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="7" class="empty-message">No resources found.</td></tr>';
+            tableBody.innerHTML = `<tr><td colspan="7" class="empty-message">${typeof i18n !== 'undefined' ? i18n.t('cost.noResources') : 'No resources found.'}</td></tr>`;
             return;
         }
         
@@ -213,7 +213,7 @@ const CostBuilder = {
             let html = '';
             
             if (Object.keys(byType).length === 0) {
-                html = '<li class="empty-message">No breakdown data available.</li>';
+                html = `<li class="empty-message">${typeof i18n !== 'undefined' ? i18n.t('cost.noBreakdown') : 'No breakdown data available.'}</li>`;
             } else {
                 for (const [resourceType, values] of Object.entries(byType)) {
                     html += `
@@ -235,7 +235,7 @@ const CostBuilder = {
             let html = '';
             
             if (Object.keys(byCategory).length === 0) {
-                html = '<li class="empty-message">No breakdown data available.</li>';
+                html = `<li class="empty-message">${typeof i18n !== 'undefined' ? i18n.t('cost.noBreakdown') : 'No breakdown data available.'}</li>`;
             } else {
                 for (const [category, values] of Object.entries(byCategory)) {
                     html += `

@@ -10,7 +10,51 @@ const App = {
      * Initialize application
      */
     init() {
+        this.initTheme();
         this.setupTabNavigation();
+    },
+    
+    /**
+     * Initialize theme system
+     */
+    initTheme() {
+        // Get theme preference from localStorage, default to 'light'
+        const savedTheme = localStorage.getItem('osc-finops-theme');
+        const theme = savedTheme || 'light';
+        
+        this.setTheme(theme);
+        
+        // Setup theme toggle button - use event delegation or ensure it's attached when app shows
+        this.setupThemeToggle();
+    },
+    
+    /**
+     * Set theme
+     */
+    setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('osc-finops-theme', theme);
+        this.updateThemeToggleButton(theme);
+    },
+    
+    /**
+     * Toggle theme
+     */
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        this.setTheme(newTheme);
+    },
+    
+    /**
+     * Update theme toggle button text/icon
+     */
+    updateThemeToggleButton(theme) {
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+            themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+        }
     },
     
     /**
@@ -24,6 +68,23 @@ const App = {
                 this.switchTab(tabName);
             });
         });
+    },
+    
+    /**
+     * Setup theme toggle button event listener
+     * This can be called multiple times safely
+     */
+    setupThemeToggle() {
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            // Remove existing listener if any (to prevent duplicates)
+            const newToggle = themeToggle.cloneNode(true);
+            themeToggle.parentNode.replaceChild(newToggle, themeToggle);
+            
+            // Attach event listener
+            newToggle.addEventListener('click', () => this.toggleTheme());
+            this.updateThemeToggleButton(document.documentElement.getAttribute('data-theme') || 'light');
+        }
     },
     
     /**

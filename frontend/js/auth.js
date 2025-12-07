@@ -93,7 +93,7 @@ const Auth = {
         
         // Validate region
         if (!region) {
-            this.showError('Please select a region');
+            this.showError(typeof i18n !== 'undefined' ? i18n.t('login.selectRegion') : 'Please select a region');
             return;
         }
         
@@ -145,7 +145,7 @@ const Auth = {
         } catch (error) {
             console.error('Login error:', error);
             // Extract error message from error object or use generic message
-            const errorMsg = error.message || 'Network error. Please try again.';
+            const errorMsg = error.message || (typeof i18n !== 'undefined' ? i18n.t('login.error') : 'Network error. Please try again.');
             this.showError(errorMsg);
         } finally {
             // Reset button state
@@ -210,6 +210,11 @@ const Auth = {
     showMainApp() {
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('main-app').style.display = 'flex';
+        
+        // Ensure theme toggle is set up when main app is shown
+        if (typeof App !== 'undefined' && App.setupThemeToggle) {
+            App.setupThemeToggle();
+        }
     },
     
     /**
@@ -222,7 +227,11 @@ const Auth = {
             const expiresAt = this.sessionData.expires_at 
                 ? new Date(this.sessionData.expires_at).toLocaleTimeString()
                 : 'Unknown';
+            if (typeof i18n !== 'undefined') {
+                sessionInfo.textContent = i18n.t('header.sessionInfo', { region, expires: expiresAt });
+            } else {
             sessionInfo.textContent = `Region: ${region} | Expires: ${expiresAt}`;
+            }
         }
     },
     
