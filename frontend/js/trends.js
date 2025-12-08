@@ -29,14 +29,17 @@ const TrendsService = {
     /**
      * Get trend analysis data.
      * 
-     * Note: New validation and projection rules:
-     * - to_date must be in the past by at least 1 granularity period
+     * Validation rules (enforced by backend):
+     * - from_date must be in the past
+     * - to_date must be >= from_date + 1 granularity period
+     * 
+     * Functional rules (not validation):
      * - If from_date is in the past: do not show projected trend
      * - If from_date is in the future: query consumption until last period excluding today, then project trend
      * 
      * @param {Object} params - Query parameters
-     * @param {string} params.from_date - Start date (YYYY-MM-DD)
-     * @param {string} params.to_date - End date (YYYY-MM-DD) - must be in past
+     * @param {string} params.from_date - Start date (YYYY-MM-DD) - must be in past
+     * @param {string} params.to_date - End date (YYYY-MM-DD) - must be >= from_date + 1 granularity period
      * @param {string} [params.granularity] - Granularity: 'day', 'week', 'month'
      * @param {string} [params.region] - Filter by region
      * @param {string} [params.resource_type] - Filter by resource type

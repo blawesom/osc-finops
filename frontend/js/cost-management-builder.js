@@ -213,12 +213,21 @@ const CostManagementBuilder = {
     
     /**
      * Load all data (consumption, trends, budget status)
+     * 
+     * Validation rules (enforced by backend):
+     * - from_date must be in the past
+     * - to_date must be >= from_date + 1 granularity period
+     * 
+     * Functional rules (not validation):
+     * - If from_date is in the past: do not show projected trend
+     * - If from_date is in the future: query consumption until last period excluding today, then project trend
+     * - When budget is selected: dates are rounded to budget period boundaries, consumption is cumulative
      */
     async loadData() {
         try {
             this.getFiltersFromUI();
             
-            // Validate dates
+            // Basic presence check for user experience (all other validation happens on backend)
             if (!this.filters.from_date || !this.filters.to_date) {
                 this.showError(typeof i18n !== 'undefined' ? i18n.t('common.error') : 'Please select both from and to dates');
                 return;
@@ -234,6 +243,13 @@ const CostManagementBuilder = {
                 trendEndDate = this.selectedBudget.end_date;
             }
             
+            // Functional check: determine if from_date is in past (for projection logic, not validation)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const fromDate = new Date(this.filters.from_date);
+            fromDate.setHours(0, 0, 0, 0);
+            const isFromDateInPast = fromDate < today;
+            
             // Load consumption data
             const consumptionParams = {
                 from_date: this.filters.from_date,
@@ -246,16 +262,33 @@ const CostManagementBuilder = {
             
             const consumptionResponse = await ConsumptionService.getConsumption(consumptionParams);
             this.currentConsumptionData = consumptionResponse.data;
+            this.currentConsumptionMetaData = consumptionResponse.metadata;
+            this.currentConsumptionTotals = consumptionResponse.totals;
             
             // Load trend data with projection
+            // Note: API handles projection rules based on from_date position
             const trendParams = {
                 from_date: this.filters.from_date,
                 to_date: this.filters.to_date,
-                granularity: this.filters.granularity,
-                project_until: trendEndDate
+                granularity: this.filters.granularity
             };
+            
+            // Only project if from_date is in future or if explicitly requested with budget
+            if (!isFromDateInPast && this.selectedBudget && this.selectedBudget.end_date) {
+                trendParams.project_until = trendEndDate;
+            } else if (!isFromDateInPast) {
+                // from_date in future: project until to_date
+                trendParams.project_until = this.filters.to_date;
+            }
+            // If from_date in past: no projection (handled by API)
+            
             if (this.filters.region) {
                 trendParams.region = this.filters.region;
+            }
+            
+            // Pass budget_id for boundary alignment
+            if (this.selectedBudget) {
+                trendParams.budget_id = this.selectedBudget.budget_id;
             }
             
             // Show progress bar for trends loading (async job)
@@ -689,8 +722,8 @@ const CostManagementBuilder = {
             });
         }
         
-        // Trend dataset
-        if (Object.keys(trendByPeriod).length > 0) {
+        // Trend dataset (only show if projection was performed)
+        if (Object.keys(trendByPeriod).length > 0 && this.currentTrendData?.projected) {
             const trendData = labels.map(label => trendByPeriod[label] || null);
             datasets.push({
                 label: `Trend Projection (${currency})`,
@@ -764,6 +797,9 @@ const CostManagementBuilder = {
     
     /**
      * Aggregate consumption by period
+     * 
+     * Note: When budget is selected, consumption should be cumulative within budget periods
+     * and reset at the start of each budget period.
      */
     aggregateConsumptionByPeriod() {
         if (!this.currentConsumptionData || !this.currentConsumptionData.entries) {
@@ -773,15 +809,31 @@ const CostManagementBuilder = {
         const aggregated = {};
         const granularity = this.filters.granularity;
         
-        this.currentConsumptionData.entries.forEach(entry => {
-            const periodKey = this.getPeriodKey(entry.FromDate || entry.from_date, granularity);
-            const cost = parseFloat(entry.Price || entry.price || 0) || 0;
-            
-            if (!aggregated[periodKey]) {
-                aggregated[periodKey] = 0;
-            }
-            aggregated[periodKey] += cost;
-        });
+        // If budget is selected, handle cumulative consumption
+        if (this.selectedBudget && this.budgetStatus) {
+            // Use budget periods for aggregation
+            const budgetPeriods = this.budgetStatus.periods || [];
+            budgetPeriods.forEach(periodInfo => {
+                const periodKey = periodInfo.start_date;
+                // Use cumulative_spent if available, otherwise use spent
+                const cumulativeCost = periodInfo.cumulative_spent !== undefined 
+                    ? periodInfo.cumulative_spent 
+                    : periodInfo.spent || 0;
+                aggregated[periodKey] = cumulativeCost;
+            });
+        } else {
+            // Standard aggregation by granularity
+            this.currentConsumptionData.entries.forEach(entry => {
+                const periodKey = this.getPeriodKey(entry.FromDate || entry.from_date, granularity);
+                // Price is already calculated (quantity × unit_price) in pre-aggregated data
+                const cost = parseFloat(entry.Price || entry.price || 0) || 0;
+                
+                if (!aggregated[periodKey]) {
+                    aggregated[periodKey] = 0;  
+                }
+                aggregated[periodKey] += cost;
+            });
+        }
         
         return aggregated;
     },
@@ -795,13 +847,22 @@ const CostManagementBuilder = {
         if (granularity === 'day') {
             return dateStr;
         } else if (granularity === 'week') {
-            // Get Monday of the week
-            const day = date.getDay();
-            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-            const monday = new Date(date.setDate(diff));
-            return this.formatDate(monday);
+            // Get monthly week start (1st, 8th, 15th, or 22nd of month)
+            const dayOfMonth = date.getDate();
+            let weekStartDay;
+            if (dayOfMonth <= 7) {
+                weekStartDay = 1;
+            } else if (dayOfMonth <= 14) {
+                weekStartDay = 8;
+            } else if (dayOfMonth <= 21) {
+                weekStartDay = 15;
+            } else {
+                weekStartDay = 22;
+            }
+            const weekStart = new Date(date.getFullYear(), date.getMonth(), weekStartDay);
+            return this.formatDate(weekStart);
         } else { // month
-            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         }
     },
     

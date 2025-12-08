@@ -10,6 +10,7 @@ from osc_sdk_python import Gateway
 from backend.config.settings import CONSUMPTION_CACHE_TTL
 from backend.services.catalog_service import get_catalog
 from backend.utils.api_call_logger import create_logged_gateway, process_and_log_api_call
+from backend.utils.date_validators import validate_date_range
 
 
 class ConsumptionCache:
@@ -93,6 +94,10 @@ def fetch_consumption(
     - FromDate is inclusive (included in the time period)
     - ToDate is exclusive (excluded from the time period, must be later than FromDate)
     
+    Validation (enforced by validate_date_range):
+    - from_date must be in the past
+    - to_date must be > from_date
+    
     Args:
         access_key: Outscale access key
         secret_key: Outscale secret key
@@ -108,12 +113,12 @@ def fetch_consumption(
         Exception: If API call fails
     """
     try:
-        # Validate date format
-        from_dt = datetime.strptime(from_date, "%Y-%m-%d")
-        to_dt = datetime.strptime(to_date, "%Y-%m-%d")
-        
-        if from_date >= to_date:
-            raise ValueError("from_date must be < to_date (ToDate is exclusive)")
+        # Validate date range using centralized validator
+        # Note: fetch_consumption doesn't have granularity, so we validate basic rules only
+        # The validation ensures from_date < to_date and from_date is in past
+        is_valid, error_msg = validate_date_range(from_date, to_date, granularity=None)
+        if not is_valid:
+            raise ValueError(error_msg)
         
         # Create gateway with credentials and logging enabled
         gateway = create_logged_gateway(
@@ -269,18 +274,17 @@ def aggregate_by_granularity(consumption_data: Dict, granularity: str) -> List[D
         return result
     
     elif granularity == "week":
-        # Group by calendar week (Monday-Sunday)
+        # Group by monthly week (1-7, 8-14, 15-21, 22-end of month)
         grouped = defaultdict(lambda: {"value": 0.0, "price": 0.0, "count": 0, "dates": set()})
         
         for entry in entries:
             from_date_str = entry.get("FromDate", "")
             if len(from_date_str) >= 10:
                 try:
-                    date_obj = datetime.strptime(from_date_str[:10], "%Y-%m-%d")
-                    # Get Monday of the week
-                    days_since_monday = date_obj.weekday()
-                    monday = date_obj - timedelta(days=days_since_monday)
-                    week_key = monday.strftime("%Y-%m-%d")
+                    date_obj = datetime.strptime(from_date_str[:10], "%Y-%m-%d").date()
+                    # Get monthly week start (1st, 8th, 15th, or 22nd of month)
+                    week_start = get_monthly_week_start(date_obj)
+                    week_key = week_start.strftime("%Y-%m-%d")
                     
                     grouped[week_key]["value"] += entry.get("Value", 0.0) or 0.0
                     grouped[week_key]["price"] += entry.get("Price", 0.0) or 0.0
@@ -478,36 +482,6 @@ def calculate_totals(consumption_data: Dict) -> Dict:
     }
 
 
-def validate_to_date_past(granularity: str, to_date: str) -> bool:
-    """
-    Validate that to_date is in the past by at least 1 granularity period.
-    
-    Args:
-        granularity: "day", "week", or "month"
-        to_date: End date (ISO format: YYYY-MM-DD)
-    
-    Returns:
-        True if to_date is in the past by at least 1 granularity period
-    """
-    try:
-        to_dt = datetime.strptime(to_date, "%Y-%m-%d")
-        today = datetime.utcnow().date()
-        to_date_obj = to_dt.date()
-        
-        if granularity == "day":
-            required_past = today - timedelta(days=1)
-        elif granularity == "week":
-            required_past = today - timedelta(weeks=1)
-        elif granularity == "month":
-            required_past = today - relativedelta(months=1)
-        else:
-            return False
-        
-        return to_date_obj <= required_past
-    except ValueError:
-        return False
-
-
 def round_to_period_start(date_str: str, granularity: str) -> str:
     """
     Round date down to period start/beginning.
@@ -525,10 +499,9 @@ def round_to_period_start(date_str: str, granularity: str) -> str:
         if granularity == "day":
             return date_obj.isoformat()
         elif granularity == "week":
-            # Round down to Monday of the week
-            days_since_monday = date_obj.weekday()
-            monday = date_obj - timedelta(days=days_since_monday)
-            return monday.isoformat()
+            # Round down to start of monthly week (1st, 8th, 15th, or 22nd)
+            week_start = get_monthly_week_start(date_obj)
+            return week_start.isoformat()
         elif granularity == "month":
             # Round down to first day of the month
             first_day = date_obj.replace(day=1)
@@ -558,11 +531,37 @@ def round_to_period_end(date_str: str, granularity: str) -> str:
             next_day = date_obj + timedelta(days=1)
             return next_day.isoformat()
         elif granularity == "week":
-            # Round up to Monday of next week (exclusive)
-            days_since_monday = date_obj.weekday()
-            days_until_next_monday = 7 - days_since_monday
-            next_monday = date_obj + timedelta(days=days_until_next_monday)
-            return next_monday.isoformat()
+            # Round up to start of next monthly week (exclusive)
+            week_start = get_monthly_week_start(date_obj)
+            day_of_month = date_obj.day
+            
+            # Determine next week start
+            if day_of_month <= 7:
+                next_week_start_day = 8
+            elif day_of_month <= 14:
+                next_week_start_day = 15
+            elif day_of_month <= 21:
+                next_week_start_day = 22
+            else:
+                # Week 4, move to first day of next month
+                if date_obj.month == 12:
+                    next_week_start = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
+                else:
+                    next_week_start = date_obj.replace(month=date_obj.month + 1, day=1)
+                return next_week_start.isoformat()
+            
+            # Check if next week start is still in same month
+            last_day_of_month = monthrange(date_obj.year, date_obj.month)[1]
+            if next_week_start_day <= last_day_of_month:
+                next_week_start = date_obj.replace(day=next_week_start_day)
+            else:
+                # Move to first day of next month
+                if date_obj.month == 12:
+                    next_week_start = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
+                else:
+                    next_week_start = date_obj.replace(month=date_obj.month + 1, day=1)
+            
+            return next_week_start.isoformat()
         elif granularity == "month":
             # Round up to first day of next month (exclusive)
             if date_obj.month == 12:
@@ -598,6 +597,35 @@ def get_consumption_granularity_from_budget(period_type: str) -> str:
     else:
         # Default to day for weekly budgets or unknown types
         return "day"
+
+
+def get_monthly_week_start(date_obj: date) -> date:
+    """
+    Get the start date of the monthly week for a given date.
+    
+    Monthly weeks are:
+    - Week 1: Days 1-7 (starts on day 1)
+    - Week 2: Days 8-14 (starts on day 8)
+    - Week 3: Days 15-21 (starts on day 15)
+    - Week 4: Days 22-end (starts on day 22)
+    
+    Args:
+        date_obj: Date object
+        
+    Returns:
+        Date object representing the start of the monthly week
+    """
+    day_of_month = date_obj.day
+    if day_of_month <= 7:
+        week_start_day = 1
+    elif day_of_month <= 14:
+        week_start_day = 8
+    elif day_of_month <= 21:
+        week_start_day = 15
+    else:
+        week_start_day = 22
+    
+    return date_obj.replace(day=week_start_day)
 
 
 def calculate_monthly_weeks(year: int, month: int) -> List[Dict[str, str]]:

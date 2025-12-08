@@ -9,9 +9,9 @@ from backend.services.consumption_service import (
     aggregate_by_granularity,
     filter_consumption,
     aggregate_by_dimension,
-    calculate_totals,
-    validate_to_date_past
+    calculate_totals
 )
+from backend.utils.date_validators import validate_date_range
 from backend.config.settings import SUPPORTED_REGIONS
 from backend.utils.errors import APIError
 from backend.middleware.auth_middleware import require_auth
@@ -60,23 +60,10 @@ def get_consumption_endpoint():
     if not from_date or not to_date:
         raise APIError("from_date and to_date parameters are required", status_code=400)
     
-    # Validate date format
-    try:
-        datetime.strptime(from_date, "%Y-%m-%d")
-        datetime.strptime(to_date, "%Y-%m-%d")
-    except ValueError:
-        raise APIError("Invalid date format. Use YYYY-MM-DD", status_code=400)
-    
-    # Validate date range
-    if from_date >= to_date:
-        raise APIError("from_date must be < to_date (ToDate is exclusive)", status_code=400)
-    
-    # Validate to_date is in the past by at least 1 granularity period
-    if not validate_to_date_past(granularity, to_date):
-        raise APIError(
-            f"to_date must be in the past by at least 1 {granularity} period",
-            status_code=400
-        )
+    # Validate date range using centralized validator
+    is_valid, error_msg = validate_date_range(from_date, to_date, granularity)
+    if not is_valid:
+        raise APIError(error_msg, status_code=400)
     
     # Validate granularity
     if granularity not in ['day', 'week', 'month']:

@@ -9,9 +9,9 @@ from datetime import datetime
 from backend.services.trend_service import (
     calculate_trends, 
     calculate_trends_async, 
-    project_trend_until_date,
-    validate_date_range
+    project_trend_until_date
 )
+from backend.utils.date_validators import validate_date_range
 from backend.services.job_queue import job_queue
 from backend.config.settings import SUPPORTED_REGIONS
 from backend.utils.errors import APIError
@@ -58,18 +58,7 @@ def get_trends():
     if not from_date or not to_date:
         raise APIError("from_date and to_date parameters are required", status_code=400)
     
-    # Validate date format
-    try:
-        datetime.strptime(from_date, "%Y-%m-%d")
-        datetime.strptime(to_date, "%Y-%m-%d")
-    except ValueError:
-        raise APIError("Invalid date format. Use YYYY-MM-DD", status_code=400)
-    
-    # Validate date range
-    if from_date >= to_date:
-        raise APIError("from_date must be < to_date (ToDate is exclusive)", status_code=400)
-    
-    # Validate date range using trend service validation
+    # Validate date range using centralized validator
     is_valid, error_msg = validate_date_range(from_date, to_date, granularity)
     if not is_valid:
         raise APIError(error_msg, status_code=400)
@@ -174,16 +163,10 @@ def submit_trends_job():
     if not from_date or not to_date:
         raise APIError("from_date and to_date are required", status_code=400)
     
-    # Validate date format
-    try:
-        datetime.strptime(from_date, "%Y-%m-%d")
-        datetime.strptime(to_date, "%Y-%m-%d")
-    except ValueError:
-        raise APIError("Invalid date format. Use YYYY-MM-DD", status_code=400)
-    
-    # Validate date range
-    if from_date > to_date:
-        raise APIError("from_date must be <= to_date", status_code=400)
+    # Validate date range using centralized validator
+    is_valid, error_msg = validate_date_range(from_date, to_date, granularity)
+    if not is_valid:
+        raise APIError(error_msg, status_code=400)
     
     # Validate granularity
     if granularity not in ['day', 'week', 'month']:
