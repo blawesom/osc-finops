@@ -250,21 +250,6 @@ const CostManagementBuilder = {
             fromDate.setHours(0, 0, 0, 0);
             const isFromDateInPast = fromDate < today;
             
-            // Load consumption data
-            const consumptionParams = {
-                from_date: this.filters.from_date,
-                to_date: this.filters.to_date,
-                granularity: this.filters.granularity
-            };
-            if (this.filters.region) {
-                consumptionParams.region = this.filters.region;
-            }
-            
-            const consumptionResponse = await ConsumptionService.getConsumption(consumptionParams);
-            this.currentConsumptionData = consumptionResponse.data;
-            this.currentConsumptionMetaData = consumptionResponse.metadata;
-            this.currentConsumptionTotals = consumptionResponse.totals;
-            
             // Load trend data with projection
             // Note: API handles projection rules based on from_date position
             const trendParams = {
@@ -325,6 +310,24 @@ const CostManagementBuilder = {
                 this.hideProgressBar();
             }
             
+            // Extract consumption data from trend periods
+            if (this.currentTrendData) {
+                const consumptionData = this.extractConsumptionFromTrends(this.currentTrendData);
+                this.currentConsumptionData = consumptionData;
+                this.currentConsumptionMetaData = {
+                    from_date: this.filters.from_date,
+                    to_date: this.filters.to_date,
+                    region: this.filters.region || this.currentTrendData.region,
+                    currency: this.currentTrendData.currency,
+                    granularity: this.filters.granularity
+                };
+                this.currentConsumptionTotals = {
+                    total_price: consumptionData.entries.reduce((sum, e) => sum + (e.Price || e.price || 0), 0),
+                    total_value: consumptionData.entries.reduce((sum, e) => sum + (e.Value || e.value || 0), 0),
+                    entry_count: consumptionData.entries.length
+                };
+            }
+            
             // Load budget status if budget is selected
             if (this.selectedBudget) {
                 const budgetStatusResponse = await BudgetService.getBudgetStatus(
@@ -347,6 +350,44 @@ const CostManagementBuilder = {
             this.hideLoading();
             this.hideProgressBar();
         }
+    },
+    
+    /**
+     * Extract consumption data from trend service periods
+     * Transforms trend periods into consumption entries format for chart compatibility
+     * 
+     * @param {Object} trendData - Trend data from trend service
+     * @returns {Object} Consumption data in the same format as consumption service response
+     */
+    extractConsumptionFromTrends(trendData) {
+        if (!trendData || !trendData.periods) {
+            return { entries: [], currency: 'EUR', region: '', from_date: '', to_date: '' };
+        }
+        
+        // Filter out projected periods (only historical for consumption)
+        const historicalPeriods = trendData.periods.filter(p => !p.projected);
+        
+        const entries = historicalPeriods.map(period => ({
+            FromDate: period.from_date,
+            ToDate: period.to_date,
+            from_date: period.from_date,
+            to_date: period.to_date,
+            Price: period.cost,
+            price: period.cost,
+            Value: period.value,
+            value: period.value,
+            Region: trendData.region || '',
+            region: trendData.region || ''
+        }));
+        
+        return {
+            entries: entries,
+            currency: trendData.currency || 'EUR',
+            region: trendData.region || '',
+            from_date: trendData.from_date,
+            to_date: trendData.to_date,
+            entry_count: entries.length
+        };
     },
     
     /**

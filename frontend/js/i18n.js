@@ -26,7 +26,7 @@ const i18n = {
             
             // Tabs
             'tab.quotes': 'Quotes',
-            'tab.cost': 'Cost',
+            'tab.cost': 'Live Cost',
             'tab.costManagement': 'Cost Management',
             
             // Quotes
@@ -190,7 +190,7 @@ const i18n = {
             
             // Tabs
             'tab.quotes': 'Devis',
-            'tab.cost': 'Coût',
+            'tab.cost': 'Coût Réel',
             'tab.costManagement': 'Gestion des Coûts',
             
             // Quotes
