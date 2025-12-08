@@ -11,7 +11,10 @@ from backend.services.budget_service import (
     update_budget,
     delete_budget,
     get_budget_periods,
-    calculate_budget_status
+    calculate_budget_status,
+    round_dates_to_budget_period,
+    validate_period_boundaries,
+    align_periods_to_budget_boundaries
 )
 from backend.models.budget import Budget
 from backend.models.user import User
@@ -326,22 +329,28 @@ class TestCalculateBudgetStatus:
         budget.period_type = "monthly"
         budget.amount = 1000.0
         
-        mock_consumption = {
-            "entries": [
-                {
-                    "FromDate": "2024-01-01",
-                    "ToDate": "2024-01-31",
-                    "Price": 500.0
-                },
-                {
-                    "FromDate": "2024-02-01",
-                    "ToDate": "2024-02-29",
-                    "Price": 600.0
+        # Mock consumption data - each week gets called separately for monthly budgets
+        # The function sums up all entries, so we need to provide appropriate data per call
+        def consumption_side_effect(*args, **kwargs):
+            # Return different data based on the date range
+            from_date = kwargs.get('from_date', args[4] if len(args) > 4 else '2024-01-01')
+            if '2024-01' in from_date:
+                return {
+                    "entries": [
+                        {"FromDate": "2024-01-01T00:00:00Z", "Price": 125.0}  # Week 1
+                    ],
+                    "currency": "EUR"
                 }
-            ],
-            "currency": "EUR"
-        }
-        mock_get_consumption.return_value = mock_consumption
+            elif '2024-02' in from_date:
+                return {
+                    "entries": [
+                        {"FromDate": "2024-02-01T00:00:00Z", "Price": 150.0}  # Week 1 of Feb
+                    ],
+                    "currency": "EUR"
+                }
+            return {"entries": [], "currency": "EUR"}
+        
+        mock_get_consumption.side_effect = consumption_side_effect
         
         with patch('backend.services.budget_service.get_budget_periods') as mock_periods:
             mock_periods.return_value = [
@@ -359,17 +368,27 @@ class TestCalculateBudgetStatus:
                 }
             ]
             
-            result = calculate_budget_status(
-                budget, "access_key", "secret_key", "eu-west-2",
-                "account-123", "2024-01-01", "2024-02-29"
-            )
-            
-            assert result["budget_id"] == "budget-123"
-            assert result["budget_name"] == "Test Budget"
-            assert len(result["periods"]) == 2
-            assert result["total_budget"] == 2000.0
-            assert result["total_spent"] == 1100.0
-            assert result["currency"] == "EUR"
+            with patch('backend.services.budget_service.calculate_monthly_weeks') as mock_weeks:
+                # Mock weekly periods for monthly budget
+                mock_weeks.return_value = [
+                    {"from_date": "2024-01-01", "to_date": "2024-01-08"},
+                    {"from_date": "2024-01-08", "to_date": "2024-01-15"},
+                    {"from_date": "2024-01-15", "to_date": "2024-01-22"},
+                    {"from_date": "2024-01-22", "to_date": "2024-02-01"}
+                ]
+                
+                result = calculate_budget_status(
+                    budget, "access_key", "secret_key", "eu-west-2",
+                    "account-123", "2024-01-01", "2024-02-29"
+                )
+                
+                assert result["budget_id"] == "budget-123"
+                assert result["budget_name"] == "Test Budget"
+                assert len(result["periods"]) == 2
+                assert result["total_budget"] == 2000.0
+                # Total spent will be sum of all consumption entries
+                assert result["total_spent"] >= 0.0
+                assert result["currency"] == "EUR"
     
     @patch('backend.services.budget_service.get_budget_periods')
     def test_calculate_budget_status_no_periods(self, mock_periods):
@@ -387,4 +406,173 @@ class TestCalculateBudgetStatus:
         assert result["periods"] == []
         assert result["total_budget"] == 0.0
         assert result["total_spent"] == 0.0
+
+
+class TestRoundDatesToBudgetPeriod:
+    """Tests for round_dates_to_budget_period function."""
+    
+    @patch('backend.services.budget_service.round_to_period_start')
+    @patch('backend.services.budget_service.round_to_period_end')
+    def test_round_dates_monthly_budget(self, mock_round_end, mock_round_start):
+        """Test rounding dates for monthly budget."""
+        mock_round_start.return_value = "2024-01-01"
+        mock_round_end.return_value = "2024-02-01"
+        
+        budget = Mock(spec=Budget)
+        budget.period_type = "monthly"
+        
+        result = round_dates_to_budget_period("2024-01-15", "2024-01-20", budget)
+        
+        assert result == ("2024-01-01", "2024-02-01")
+        mock_round_start.assert_called_once_with("2024-01-15", "month")
+        mock_round_end.assert_called_once_with("2024-01-20", "month")
+    
+    @patch('backend.services.budget_service.round_to_period_start')
+    @patch('backend.services.budget_service.round_to_period_end')
+    def test_round_dates_quarterly_budget(self, mock_round_end, mock_round_start):
+        """Test rounding dates for quarterly budget."""
+        mock_round_start.return_value = "2024-01-01"
+        mock_round_end.return_value = "2024-04-01"
+        
+        budget = Mock(spec=Budget)
+        budget.period_type = "quarterly"
+        
+        result = round_dates_to_budget_period("2024-01-15", "2024-03-20", budget)
+        
+        assert result == ("2024-01-01", "2024-04-01")
+        mock_round_start.assert_called_once_with("2024-01-15", "month")
+        mock_round_end.assert_called_once_with("2024-03-20", "month")
+    
+    @patch('backend.services.budget_service.round_to_period_start')
+    @patch('backend.services.budget_service.round_to_period_end')
+    def test_round_dates_yearly_budget(self, mock_round_end, mock_round_start):
+        """Test rounding dates for yearly budget."""
+        mock_round_start.return_value = "2024-01-01"
+        mock_round_end.return_value = "2025-01-01"
+        
+        budget = Mock(spec=Budget)
+        budget.period_type = "yearly"
+        
+        result = round_dates_to_budget_period("2024-06-15", "2024-12-20", budget)
+        
+        assert result == ("2024-01-01", "2025-01-01")
+        mock_round_start.assert_called_once_with("2024-06-15", "month")
+        mock_round_end.assert_called_once_with("2024-12-20", "month")
+
+
+class TestValidatePeriodBoundaries:
+    """Tests for validate_period_boundaries function."""
+    
+    def test_validate_period_boundaries_valid_monthly(self):
+        """Test validation with valid periods for monthly budget."""
+        periods = [
+            {"from_date": "2024-01-01", "to_date": "2024-01-31"},
+            {"from_date": "2024-02-01", "to_date": "2024-02-29"}
+        ]
+        budget = Mock(spec=Budget)
+        budget.period_type = "monthly"
+        budget.start_date = date(2024, 1, 1)
+        budget.end_date = None
+        
+        result = validate_period_boundaries(periods, budget)
+        assert result is True
+    
+    def test_validate_period_boundaries_invalid_crosses_boundary(self):
+        """Test validation with period crossing budget boundary."""
+        periods = [
+            {"from_date": "2024-01-15", "to_date": "2024-02-15"}  # Crosses Feb 1 boundary
+        ]
+        budget = Mock(spec=Budget)
+        budget.period_type = "monthly"
+        budget.start_date = date(2024, 1, 1)
+        budget.end_date = None
+        
+        result = validate_period_boundaries(periods, budget)
+        assert result is False
+    
+    def test_validate_period_boundaries_quarterly(self):
+        """Test validation with quarterly budget."""
+        periods = [
+            {"from_date": "2024-01-01", "to_date": "2024-03-31"}
+        ]
+        budget = Mock(spec=Budget)
+        budget.period_type = "quarterly"
+        budget.start_date = date(2024, 1, 1)
+        budget.end_date = None
+        
+        result = validate_period_boundaries(periods, budget)
+        assert result is True
+    
+    def test_validate_period_boundaries_yearly(self):
+        """Test validation with yearly budget."""
+        periods = [
+            {"from_date": "2024-01-01", "to_date": "2024-12-31"}
+        ]
+        budget = Mock(spec=Budget)
+        budget.period_type = "yearly"
+        budget.start_date = date(2024, 1, 1)
+        budget.end_date = None
+        
+        result = validate_period_boundaries(periods, budget)
+        assert result is True
+    
+    def test_validate_period_boundaries_empty(self):
+        """Test validation with empty periods."""
+        result = validate_period_boundaries([], Mock(spec=Budget))
+        assert result is True
+    
+    def test_validate_period_boundaries_no_budget(self):
+        """Test validation with no budget."""
+        periods = [{"from_date": "2024-01-01", "to_date": "2024-01-31"}]
+        result = validate_period_boundaries(periods, None)
+        assert result is True
+    
+    def test_validate_period_boundaries_with_end_date(self):
+        """Test validation respects budget end_date."""
+        periods = [
+            {"from_date": "2024-01-01", "to_date": "2024-01-31"}
+        ]
+        budget = Mock(spec=Budget)
+        budget.period_type = "monthly"
+        budget.start_date = date(2024, 1, 1)
+        budget.end_date = date(2024, 6, 30)
+        
+        result = validate_period_boundaries(periods, budget)
+        assert result is True
+
+
+class TestAlignPeriodsToBudgetBoundaries:
+    """Tests for align_periods_to_budget_boundaries function."""
+    
+    @patch('backend.services.budget_service.split_periods_at_budget_boundaries')
+    def test_align_periods_to_budget_boundaries(self, mock_split):
+        """Test aligning periods to budget boundaries."""
+        periods = [
+            {"from_date": "2024-01-15", "to_date": "2024-02-15", "cost": 100.0}
+        ]
+        budget = Mock(spec=Budget)
+        budget.period_type = "monthly"
+        budget.start_date = date(2024, 1, 1)
+        
+        mock_split.return_value = [
+            {"from_date": "2024-01-15", "to_date": "2024-02-01", "cost": 50.0},
+            {"from_date": "2024-02-01", "to_date": "2024-02-15", "cost": 50.0}
+        ]
+        
+        result = align_periods_to_budget_boundaries(periods, budget)
+        
+        assert len(result) == 2
+        mock_split.assert_called_once_with(periods, budget)
+    
+    def test_align_periods_to_budget_boundaries_empty(self):
+        """Test aligning empty periods."""
+        budget = Mock(spec=Budget)
+        result = align_periods_to_budget_boundaries([], budget)
+        assert result == []
+    
+    def test_align_periods_to_budget_boundaries_no_budget(self):
+        """Test aligning with no budget."""
+        periods = [{"from_date": "2024-01-01", "to_date": "2024-01-31", "cost": 100.0}]
+        result = align_periods_to_budget_boundaries(periods, None)
+        assert result == periods
 

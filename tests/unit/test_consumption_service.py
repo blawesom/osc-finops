@@ -1,7 +1,7 @@
 """Unit tests for backend.services.consumption_service."""
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from backend.services.consumption_service import (
     ConsumptionCache,
@@ -12,7 +12,12 @@ from backend.services.consumption_service import (
     filter_consumption,
     aggregate_by_dimension,
     calculate_totals,
-    get_top_cost_drivers
+    round_to_period_start,
+    round_to_period_end,
+    get_consumption_granularity_from_budget,
+    get_monthly_week_start,
+    calculate_monthly_weeks,
+    split_periods_at_budget_boundaries
 )
 
 
@@ -25,21 +30,6 @@ class TestConsumptionCache:
         assert cache.ttl_seconds > 0
         assert cache._cache == {}
         assert cache._timestamps == {}
-    
-    def test_make_key(self):
-        """Test _make_key creates correct cache key."""
-        cache = ConsumptionCache()
-        key = cache._make_key("account-123", "eu-west-2", "2024-01-01", "2024-01-31")
-        assert "account-123" in key
-        assert "eu-west-2" in key
-        assert "2024-01-01" in key
-        assert "2024-01-31" in key
-    
-    def test_make_key_no_region(self):
-        """Test _make_key with None region."""
-        cache = ConsumptionCache()
-        key = cache._make_key("account-123", None, "2024-01-01", "2024-01-31")
-        assert "all" in key
     
     @patch('backend.services.consumption_service.datetime')
     def test_get_not_cached(self, mock_datetime):
@@ -126,17 +116,18 @@ class TestFetchConsumption:
     """Tests for fetch_consumption function."""
     
     @patch('backend.services.consumption_service.get_catalog')
-    @patch('backend.services.consumption_service.Gateway')
+    @patch('backend.services.consumption_service.process_and_log_api_call')
+    @patch('backend.services.consumption_service.create_logged_gateway')
     @patch('backend.services.consumption_service.datetime')
-    def test_fetch_consumption_success(self, mock_datetime, mock_gateway_class, mock_get_catalog):
+    def test_fetch_consumption_success(self, mock_datetime, mock_create_gateway, mock_process_api, mock_get_catalog):
         """Test successful consumption fetch."""
         mock_datetime.utcnow.return_value = datetime(2024, 1, 1, 12, 0, 0)
         
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadConsumptionAccount.return_value = {
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_api.return_value = {
             "ConsumptionEntries": [
-                {"FromDate": "2024-01-01T00:00:00Z", "ToDate": "2024-01-02T00:00:00Z", "Price": 100.0}
+                {"FromDate": "2024-01-01T00:00:00Z", "ToDate": "2024-01-02T00:00:00Z", "Value": 10.0, "UnitPrice": 10.0}
             ]
         }
         mock_get_catalog.return_value = {"currency": "EUR"}
@@ -149,11 +140,6 @@ class TestFetchConsumption:
         assert result["currency"] == "EUR"
         assert len(result["entries"]) == 1
         assert result["entry_count"] == 1
-        mock_gateway.ReadConsumptionAccount.assert_called_once_with(
-            FromDate="2024-01-01",
-            ToDate="2024-01-31",
-            ShowPrice=True
-        )
     
     def test_fetch_consumption_invalid_date_format(self):
         """Test fetch_consumption with invalid date format."""
@@ -162,18 +148,19 @@ class TestFetchConsumption:
     
     def test_fetch_consumption_from_after_to(self):
         """Test fetch_consumption with from_date after to_date."""
-        with pytest.raises(ValueError, match="from_date must be <= to_date"):
+        with pytest.raises(ValueError, match="to_date must be > from_date"):
             fetch_consumption("key", "secret", "eu-west-2", "2024-01-31", "2024-01-01")
     
     @patch('backend.services.consumption_service.get_catalog')
-    @patch('backend.services.consumption_service.Gateway')
-    def test_fetch_consumption_adds_region(self, mock_gateway_class, mock_get_catalog):
+    @patch('backend.services.consumption_service.process_and_log_api_call')
+    @patch('backend.services.consumption_service.create_logged_gateway')
+    def test_fetch_consumption_adds_region(self, mock_create_gateway, mock_process_api, mock_get_catalog):
         """Test fetch_consumption adds region to entries."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadConsumptionAccount.return_value = {
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_api.return_value = {
             "ConsumptionEntries": [
-                {"FromDate": "2024-01-01T00:00:00Z", "ToDate": "2024-01-02T00:00:00Z"}
+                {"FromDate": "2024-01-01T00:00:00Z", "ToDate": "2024-01-02T00:00:00Z", "Value": 10.0, "UnitPrice": 10.0}
             ]
         }
         mock_get_catalog.return_value = {"currency": "EUR"}
@@ -183,24 +170,26 @@ class TestFetchConsumption:
         assert result["entries"][0]["Region"] == "eu-west-2"
     
     @patch('backend.services.consumption_service.get_catalog')
-    @patch('backend.services.consumption_service.Gateway')
-    def test_fetch_consumption_catalog_fallback(self, mock_gateway_class, mock_get_catalog):
+    @patch('backend.services.consumption_service.process_and_log_api_call')
+    @patch('backend.services.consumption_service.create_logged_gateway')
+    def test_fetch_consumption_catalog_fallback(self, mock_create_gateway, mock_process_api, mock_get_catalog):
         """Test fetch_consumption falls back to EUR if catalog fails."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadConsumptionAccount.return_value = {"ConsumptionEntries": []}
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_api.return_value = {"ConsumptionEntries": []}
         mock_get_catalog.side_effect = Exception("Catalog error")
         
         result = fetch_consumption("key", "secret", "eu-west-2", "2024-01-01", "2024-01-31")
         
         assert result["currency"] == "EUR"
     
-    @patch('backend.services.consumption_service.Gateway')
-    def test_fetch_consumption_api_error(self, mock_gateway_class):
+    @patch('backend.services.consumption_service.process_and_log_api_call')
+    @patch('backend.services.consumption_service.create_logged_gateway')
+    def test_fetch_consumption_api_error(self, mock_create_gateway, mock_process_api):
         """Test fetch_consumption handles API errors."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadConsumptionAccount.side_effect = Exception("API Error")
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_api.side_effect = Exception("API Error")
         
         with pytest.raises(Exception, match="Failed to fetch consumption"):
             fetch_consumption("key", "secret", "eu-west-2", "2024-01-01", "2024-01-31")
@@ -446,45 +435,251 @@ class TestCalculateTotals:
         assert result["entry_count"] == 0
 
 
-class TestGetTopCostDrivers:
-    """Tests for get_top_cost_drivers function."""
+class TestRoundToPeriodStart:
+    """Tests for round_to_period_start function."""
     
-    def test_get_top_cost_drivers(self):
-        """Test getting top cost drivers."""
-        consumption_data = {
-            "entries": [
-                {"Service": "S1", "Type": "VM1", "Operation": "Op1", "Price": 500.0},
-                {"Service": "S2", "Type": "VM2", "Operation": "Op2", "Price": 300.0},
-                {"Service": "S3", "Type": "Storage", "Operation": "Op3", "Price": 200.0},
-                {"Service": "S4", "Type": "VM3", "Operation": "Op4", "Price": 100.0}
-            ]
-        }
-        
-        result = get_top_cost_drivers(consumption_data, limit=3)
-        
-        assert len(result) == 3
-        assert result[0]["total_price"] == 500.0
-        assert "service" in result[0]
-        assert "resource_type" in result[0]
+    def test_round_to_period_start_day(self):
+        """Test rounding to day period start."""
+        result = round_to_period_start("2024-01-15", "day")
+        assert result == "2024-01-15"
     
-    def test_get_top_cost_drivers_default_limit(self):
-        """Test get_top_cost_drivers with default limit."""
-        consumption_data = {
-            "entries": [
-                {"Service": f"S{i}", "Type": f"VM{i}", "Operation": f"Op{i}", "Price": float(100 - i)}
-                for i in range(15)
-            ]
-        }
-        
-        result = get_top_cost_drivers(consumption_data)
-        
-        assert len(result) == 10  # Default limit
+    def test_round_to_period_start_week(self):
+        """Test rounding to week period start."""
+        result = round_to_period_start("2024-01-15", "week")
+        assert result == "2024-01-15"  # Should round to week start (15th is week 3 start)
     
-    def test_get_top_cost_drivers_empty(self):
-        """Test get_top_cost_drivers with empty entries."""
-        consumption_data = {"entries": []}
+    def test_round_to_period_start_week_mid_week(self):
+        """Test rounding to week start from mid-week."""
+        result = round_to_period_start("2024-01-10", "week")
+        assert result == "2024-01-08"  # Week 2 starts on 8th
+    
+    def test_round_to_period_start_month(self):
+        """Test rounding to month period start."""
+        result = round_to_period_start("2024-01-15", "month")
+        assert result == "2024-01-01"
+    
+    def test_round_to_period_start_invalid_granularity(self):
+        """Test with invalid granularity returns original."""
+        result = round_to_period_start("2024-01-15", "invalid")
+        assert result == "2024-01-15"
+    
+    def test_round_to_period_start_invalid_date(self):
+        """Test with invalid date format returns original."""
+        result = round_to_period_start("invalid-date", "day")
+        assert result == "invalid-date"
+
+
+class TestRoundToPeriodEnd:
+    """Tests for round_to_period_end function."""
+    
+    def test_round_to_period_end_day(self):
+        """Test rounding to day period end (exclusive)."""
+        result = round_to_period_end("2024-01-15", "day")
+        assert result == "2024-01-16"  # Next day (exclusive)
+    
+    def test_round_to_period_end_week(self):
+        """Test rounding to week period end."""
+        result = round_to_period_end("2024-01-10", "week")
+        assert result == "2024-01-15"  # Next week start (exclusive)
+    
+    def test_round_to_period_end_week_week_4(self):
+        """Test rounding week 4 to next month."""
+        result = round_to_period_end("2024-01-25", "week")
+        assert result == "2024-02-01"  # Next month start
+    
+    def test_round_to_period_end_month(self):
+        """Test rounding to month period end."""
+        result = round_to_period_end("2024-01-15", "month")
+        assert result == "2024-02-01"  # Next month start (exclusive)
+    
+    def test_round_to_period_end_month_december(self):
+        """Test rounding December to next year."""
+        result = round_to_period_end("2024-12-15", "month")
+        assert result == "2025-01-01"
+    
+    def test_round_to_period_end_invalid_granularity(self):
+        """Test with invalid granularity returns original."""
+        result = round_to_period_end("2024-01-15", "invalid")
+        assert result == "2024-01-15"
+    
+    def test_round_to_period_end_invalid_date(self):
+        """Test with invalid date format returns original."""
+        result = round_to_period_end("invalid-date", "day")
+        assert result == "invalid-date"
+
+
+class TestGetConsumptionGranularityFromBudget:
+    """Tests for get_consumption_granularity_from_budget function."""
+    
+    def test_get_consumption_granularity_yearly(self):
+        """Test yearly budget returns monthly granularity."""
+        result = get_consumption_granularity_from_budget("yearly")
+        assert result == "month"
+    
+    def test_get_consumption_granularity_quarterly(self):
+        """Test quarterly budget returns monthly granularity."""
+        result = get_consumption_granularity_from_budget("quarterly")
+        assert result == "month"
+    
+    def test_get_consumption_granularity_monthly(self):
+        """Test monthly budget returns weekly granularity."""
+        result = get_consumption_granularity_from_budget("monthly")
+        assert result == "week"
+    
+    def test_get_consumption_granularity_weekly(self):
+        """Test weekly budget returns daily granularity."""
+        result = get_consumption_granularity_from_budget("weekly")
+        assert result == "day"
+    
+    def test_get_consumption_granularity_unknown(self):
+        """Test unknown period type returns daily granularity."""
+        result = get_consumption_granularity_from_budget("unknown")
+        assert result == "day"
+
+
+class TestGetMonthlyWeekStart:
+    """Tests for get_monthly_week_start function."""
+    
+    def test_get_monthly_week_start_week_1(self):
+        """Test week 1 start (days 1-7)."""
+        result = get_monthly_week_start(date(2024, 1, 5))
+        assert result == date(2024, 1, 1)
+    
+    def test_get_monthly_week_start_week_2(self):
+        """Test week 2 start (days 8-14)."""
+        result = get_monthly_week_start(date(2024, 1, 10))
+        assert result == date(2024, 1, 8)
+    
+    def test_get_monthly_week_start_week_3(self):
+        """Test week 3 start (days 15-21)."""
+        result = get_monthly_week_start(date(2024, 1, 18))
+        assert result == date(2024, 1, 15)
+    
+    def test_get_monthly_week_start_week_4(self):
+        """Test week 4 start (days 22-end)."""
+        result = get_monthly_week_start(date(2024, 1, 25))
+        assert result == date(2024, 1, 22)
+    
+    def test_get_monthly_week_start_exact_boundaries(self):
+        """Test exact week boundaries."""
+        assert get_monthly_week_start(date(2024, 1, 1)) == date(2024, 1, 1)
+        assert get_monthly_week_start(date(2024, 1, 7)) == date(2024, 1, 1)
+        assert get_monthly_week_start(date(2024, 1, 8)) == date(2024, 1, 8)
+        assert get_monthly_week_start(date(2024, 1, 14)) == date(2024, 1, 8)
+        assert get_monthly_week_start(date(2024, 1, 15)) == date(2024, 1, 15)
+        assert get_monthly_week_start(date(2024, 1, 21)) == date(2024, 1, 15)
+        assert get_monthly_week_start(date(2024, 1, 22)) == date(2024, 1, 22)
+        assert get_monthly_week_start(date(2024, 1, 31)) == date(2024, 1, 22)
+
+
+class TestCalculateMonthlyWeeks:
+    """Tests for calculate_monthly_weeks function."""
+    
+    def test_calculate_monthly_weeks_january(self):
+        """Test calculating weeks for January (31 days)."""
+        result = calculate_monthly_weeks(2024, 1)
+        assert len(result) == 4
+        assert result[0]["from_date"] == "2024-01-01"
+        assert result[0]["to_date"] == "2024-01-08"  # Exclusive
+        assert result[3]["from_date"] == "2024-01-22"
+        assert result[3]["to_date"] == "2024-02-01"  # Exclusive
+    
+    def test_calculate_monthly_weeks_february_leap_year(self):
+        """Test calculating weeks for February in leap year (29 days)."""
+        result = calculate_monthly_weeks(2024, 2)
+        assert len(result) == 4
+        assert result[3]["from_date"] == "2024-02-22"
+        assert result[3]["to_date"] == "2024-03-01"  # Exclusive
+    
+    def test_calculate_monthly_weeks_february_non_leap(self):
+        """Test calculating weeks for February in non-leap year (28 days)."""
+        result = calculate_monthly_weeks(2023, 2)
+        assert len(result) == 4
+        assert result[3]["from_date"] == "2023-02-22"
+        assert result[3]["to_date"] == "2023-03-01"  # Exclusive
+    
+    def test_calculate_monthly_weeks_april(self):
+        """Test calculating weeks for April (30 days)."""
+        result = calculate_monthly_weeks(2024, 4)
+        assert len(result) == 4
+        assert result[3]["to_date"] == "2024-05-01"  # Exclusive
+    
+    def test_calculate_monthly_weeks_short_month(self):
+        """Test calculating weeks for a very short month (if such existed)."""
+        # All months have at least 28 days, so all should have 4 weeks
+        result = calculate_monthly_weeks(2023, 2)  # 28 days
+        assert len(result) == 4
+
+
+class TestSplitPeriodsAtBudgetBoundaries:
+    """Tests for split_periods_at_budget_boundaries function."""
+    
+    def test_split_periods_monthly_budget(self):
+        """Test splitting periods with monthly budget."""
+        periods = [
+            {"from_date": "2024-01-15", "to_date": "2024-02-15", "cost": 100.0}
+        ]
+        budget = Mock()
+        budget.period_type = "monthly"
+        budget.start_date = date(2024, 1, 1)
         
-        result = get_top_cost_drivers(consumption_data)
+        result = split_periods_at_budget_boundaries(periods, budget)
         
+        # Should split at Feb 1 boundary
+        assert len(result) > 1
+        assert any(p["to_date"] == "2024-02-01" for p in result)
+    
+    def test_split_periods_quarterly_budget(self):
+        """Test splitting periods with quarterly budget."""
+        periods = [
+            {"from_date": "2024-01-15", "to_date": "2024-04-15", "cost": 100.0}
+        ]
+        budget = Mock()
+        budget.period_type = "quarterly"
+        budget.start_date = date(2024, 1, 1)
+        
+        result = split_periods_at_budget_boundaries(periods, budget)
+        
+        # Should split at quarterly boundaries (Apr 1)
+        assert len(result) > 1
+    
+    def test_split_periods_yearly_budget(self):
+        """Test splitting periods with yearly budget."""
+        periods = [
+            {"from_date": "2024-06-15", "to_date": "2025-06-15", "cost": 100.0}
+        ]
+        budget = Mock()
+        budget.period_type = "yearly"
+        budget.start_date = date(2024, 1, 1)
+        
+        result = split_periods_at_budget_boundaries(periods, budget)
+        
+        # Should split at year boundary (2025-01-01)
+        assert len(result) > 1
+    
+    def test_split_periods_no_boundaries(self):
+        """Test periods that don't cross boundaries."""
+        periods = [
+            {"from_date": "2024-01-15", "to_date": "2024-01-20", "cost": 100.0}
+        ]
+        budget = Mock()
+        budget.period_type = "monthly"
+        budget.start_date = date(2024, 1, 1)
+        
+        result = split_periods_at_budget_boundaries(periods, budget)
+        
+        # Should remain unchanged
+        assert len(result) == 1
+        assert result[0] == periods[0]
+    
+    def test_split_periods_empty(self):
+        """Test with empty periods."""
+        result = split_periods_at_budget_boundaries([], Mock())
         assert result == []
+    
+    def test_split_periods_no_budget(self):
+        """Test with no budget."""
+        periods = [{"from_date": "2024-01-01", "to_date": "2024-01-31", "cost": 100.0}]
+        result = split_periods_at_budget_boundaries(periods, None)
+        assert result == periods
 
