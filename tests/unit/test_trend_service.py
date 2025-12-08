@@ -13,7 +13,11 @@ from backend.services.trend_service import (
     get_next_monthly_week_start,
     find_last_period_excluding_today,
     align_periods_to_budget_boundaries,
-    calculate_trends_async
+    calculate_trends_async,
+    _generate_period_ranges,
+    _fetch_period_costs,
+    _calculate_trend_metrics,
+    _build_trend_result
 )
 from backend.services.consumption_service import get_monthly_week_start
 
@@ -188,7 +192,7 @@ class TestCalculateTrends:
     def test_calculate_trends_day_granularity(self, mock_get_consumption):
         """Test calculate_trends with day granularity."""
         mock_get_consumption.return_value = {
-            "entries": [{"Price": 100.0, "Value": 10.0}],
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
             "currency": "EUR"
         }
         
@@ -207,7 +211,7 @@ class TestCalculateTrends:
     def test_calculate_trends_week_granularity(self, mock_get_consumption):
         """Test calculate_trends with week granularity."""
         mock_get_consumption.return_value = {
-            "entries": [{"Price": 100.0}],
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
             "currency": "EUR"
         }
         
@@ -224,7 +228,7 @@ class TestCalculateTrends:
     def test_calculate_trends_month_granularity(self, mock_get_consumption):
         """Test calculate_trends with month granularity."""
         mock_get_consumption.return_value = {
-            "entries": [{"Price": 100.0}],
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
             "currency": "EUR"
         }
         
@@ -242,8 +246,8 @@ class TestCalculateTrends:
         """Test calculate_trends with resource type filter."""
         mock_get_consumption.return_value = {
             "entries": [
-                {"Type": "VM", "Price": 100.0},
-                {"Type": "Storage", "Price": 50.0}
+                {"Type": "VM", "UnitPrice": 10.0, "Value": 10.0},
+                {"Type": "Storage", "UnitPrice": 5.0, "Value": 10.0}
             ],
             "currency": "EUR"
         }
@@ -255,18 +259,17 @@ class TestCalculateTrends:
         
         # Should filter to only VM entries
         assert result["resource_type"] == "VM"
-        # Each period should only count VM costs
+        # Each period should only count VM costs (10.0 * 10.0 = 100.0)
         for period in result["periods"]:
-            # Cost should be from VM entries only (100.0, not 150.0)
             assert period["cost"] == 100.0
     
     @patch('backend.services.trend_service.get_consumption')
     def test_calculate_trends_increasing_trend(self, mock_get_consumption):
         """Test calculate_trends identifies increasing trend."""
-        # Simulate increasing costs
+        # Simulate increasing costs (UnitPrice * Value)
         costs = [100.0, 150.0, 200.0]
         mock_get_consumption.side_effect = [
-            {"entries": [{"Price": cost}], "currency": "EUR"}
+            {"entries": [{"UnitPrice": cost / 10.0, "Value": 10.0}], "currency": "EUR"}
             for cost in costs
         ]
         
@@ -283,7 +286,7 @@ class TestCalculateTrends:
         """Test calculate_trends identifies decreasing trend."""
         costs = [200.0, 150.0, 100.0]
         mock_get_consumption.side_effect = [
-            {"entries": [{"Price": cost}], "currency": "EUR"}
+            {"entries": [{"UnitPrice": cost / 10.0, "Value": 10.0}], "currency": "EUR"}
             for cost in costs
         ]
         
@@ -299,7 +302,7 @@ class TestCalculateTrends:
     def test_calculate_trends_stable_trend(self, mock_get_consumption):
         """Test calculate_trends identifies stable trend."""
         mock_get_consumption.return_value = {
-            "entries": [{"Price": 100.0}],
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
             "currency": "EUR"
         }
         
@@ -316,7 +319,7 @@ class TestCalculateTrends:
         """Test calculate_trends handles consumption fetch errors."""
         mock_get_consumption.side_effect = [
             Exception("API Error"),
-            {"entries": [{"Price": 100.0}], "currency": "EUR"}
+            {"entries": [{"UnitPrice": 10.0, "Value": 10.0}], "currency": "EUR"}
         ]
         
         result = calculate_trends(
@@ -327,13 +330,13 @@ class TestCalculateTrends:
         # Should handle error gracefully, using 0.0 for failed period
         assert len(result["periods"]) == 2
         assert result["periods"][0]["cost"] == 0.0  # Failed fetch
-        assert result["periods"][1]["cost"] == 100.0  # Successful fetch
+        assert result["periods"][1]["cost"] == 100.0  # Successful fetch (10.0 * 10.0)
     
     @patch('backend.services.trend_service.get_consumption')
     def test_calculate_trends_with_budget(self, mock_get_consumption):
         """Test calculate_trends with budget parameter."""
         mock_get_consumption.return_value = {
-            "entries": [{"Price": 100.0}],
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
             "currency": "EUR"
         }
         
@@ -362,7 +365,7 @@ class TestCalculateTrends:
     def test_calculate_trends_with_project_until(self, mock_project, mock_find_last, mock_get_consumption):
         """Test calculate_trends with project_until parameter."""
         mock_get_consumption.return_value = {
-            "entries": [{"Price": 100.0}],
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
             "currency": "EUR"
         }
         mock_find_last.return_value = "2024-01-15"
@@ -409,7 +412,7 @@ class TestCalculateTrends:
     def test_calculate_trends_currency_variations(self, mock_get_consumption):
         """Test calculate_trends with different currencies."""
         mock_get_consumption.return_value = {
-            "entries": [{"Price": 100.0}],
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
             "currency": "USD"
         }
         
@@ -424,7 +427,7 @@ class TestCalculateTrends:
     def test_calculate_trends_force_refresh(self, mock_get_consumption):
         """Test calculate_trends with force_refresh parameter."""
         mock_get_consumption.return_value = {
-            "entries": [{"Price": 100.0}],
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
             "currency": "EUR"
         }
         
@@ -445,7 +448,7 @@ class TestCalculateTrends:
         mock_get_consumption.side_effect = [
             Exception("API Error 1"),
             Exception("API Error 2"),
-            {"entries": [{"Price": 100.0}], "currency": "EUR"}
+            {"entries": [{"UnitPrice": 10.0, "Value": 10.0}], "currency": "EUR"}
         ]
         
         result = calculate_trends(
@@ -456,16 +459,16 @@ class TestCalculateTrends:
         assert len(result["periods"]) == 3
         assert result["periods"][0]["cost"] == 0.0
         assert result["periods"][1]["cost"] == 0.0
-        assert result["periods"][2]["cost"] == 100.0
+        assert result["periods"][2]["cost"] == 100.0  # 10.0 * 10.0
     
     @patch('backend.services.trend_service.get_consumption')
     def test_calculate_trends_resource_type_filter_mixed(self, mock_get_consumption):
         """Test resource type filtering with mixed resource types."""
         mock_get_consumption.return_value = {
             "entries": [
-                {"Type": "VM", "Price": 100.0},
-                {"Type": "Storage", "Price": 50.0},
-                {"Type": "VM", "Price": 75.0}
+                {"Type": "VM", "UnitPrice": 10.0, "Value": 10.0},
+                {"Type": "Storage", "UnitPrice": 5.0, "Value": 10.0},
+                {"Type": "VM", "UnitPrice": 7.5, "Value": 10.0}
             ],
             "currency": "EUR"
         }
@@ -476,10 +479,10 @@ class TestCalculateTrends:
         )
         
         assert result["resource_type"] == "VM"
-        # Should only count VM entries (100.0 + 75.0 = 175.0, but per period)
+        # Should only count VM entries (10.0*10.0 + 7.5*10.0 = 175.0 per period)
         for period in result["periods"]:
             # Each period should filter to VM only
-            assert period["cost"] > 0
+            assert period["cost"] == 175.0
     
     @patch('backend.services.trend_service.validate_date_range')
     def test_calculate_trends_invalid_date_range(self, mock_validate):
@@ -942,6 +945,264 @@ class TestAlignPeriodsToBudgetBoundaries:
         assert result is None
 
 
+class TestGeneratePeriodRanges:
+    """Tests for _generate_period_ranges function."""
+    
+    def test_generate_period_ranges_day(self):
+        """Test period generation for day granularity."""
+        result = _generate_period_ranges("2024-01-01", "2024-01-03", "day")
+        
+        assert len(result) == 3
+        assert result[0]["period"] == "2024-01-01"
+        assert result[0]["from_date"] == "2024-01-01"
+        assert result[0]["to_date"] == "2024-01-01"
+        assert result[2]["period"] == "2024-01-03"
+    
+    def test_generate_period_ranges_week(self):
+        """Test period generation for week granularity."""
+        result = _generate_period_ranges("2024-01-01", "2024-01-14", "week")
+        
+        assert len(result) >= 2
+        assert result[0]["period"] == "2024-01-01"
+        assert "from_date" in result[0]
+        assert "to_date" in result[0]
+    
+    def test_generate_period_ranges_month(self):
+        """Test period generation for month granularity."""
+        result = _generate_period_ranges("2024-01-01", "2024-03-31", "month")
+        
+        assert len(result) == 3
+        assert result[0]["period"] == "2024-01"
+        assert result[1]["period"] == "2024-02"
+        assert result[2]["period"] == "2024-03"
+
+
+class TestFetchPeriodCosts:
+    """Tests for _fetch_period_costs function."""
+    
+    @patch('backend.services.trend_service.get_consumption')
+    def test_fetch_period_costs_exclusive_todate(self, mock_get_consumption):
+        """Test fetching costs with exclusive ToDate."""
+        mock_get_consumption.return_value = {
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
+            "currency": "EUR"
+        }
+        
+        period_ranges = [
+            {"period": "2024-01-01", "from_date": "2024-01-01", "to_date": "2024-01-01"}
+        ]
+        
+        periods, currency = _fetch_period_costs(
+            period_ranges, "key", "secret", "region", "account",
+            None, False, use_exclusive_todate=True
+        )
+        
+        assert len(periods) == 1
+        assert periods[0]["cost"] == 100.0  # 10.0 * 10.0
+        assert currency == "EUR"
+        # Verify exclusive ToDate was used (to_date + 1 day)
+        call_args = mock_get_consumption.call_args
+        assert call_args.kwargs["to_date"] == "2024-01-02"
+    
+    @patch('backend.services.trend_service.get_consumption')
+    def test_fetch_period_costs_inclusive_todate(self, mock_get_consumption):
+        """Test fetching costs with inclusive ToDate."""
+        mock_get_consumption.return_value = {
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
+            "currency": "EUR"
+        }
+        
+        period_ranges = [
+            {"period": "2024-01-01", "from_date": "2024-01-01", "to_date": "2024-01-01"}
+        ]
+        
+        periods, currency = _fetch_period_costs(
+            period_ranges, "key", "secret", "region", "account",
+            None, False, use_exclusive_todate=False
+        )
+        
+        assert len(periods) == 1
+        assert currency == "EUR"
+        # Verify inclusive ToDate was used (to_date as-is)
+        call_args = mock_get_consumption.call_args
+        assert call_args.kwargs["to_date"] == "2024-01-01"
+    
+    @patch('backend.services.trend_service.get_consumption')
+    def test_fetch_period_costs_with_resource_type(self, mock_get_consumption):
+        """Test fetching costs with resource type filter."""
+        mock_get_consumption.return_value = {
+            "entries": [
+                {"Type": "VM", "UnitPrice": 10.0, "Value": 10.0},
+                {"Type": "Storage", "UnitPrice": 5.0, "Value": 10.0}
+            ],
+            "currency": "EUR"
+        }
+        
+        period_ranges = [
+            {"period": "2024-01-01", "from_date": "2024-01-01", "to_date": "2024-01-01"}
+        ]
+        
+        periods, currency = _fetch_period_costs(
+            period_ranges, "key", "secret", "region", "account",
+            "VM", False, use_exclusive_todate=True
+        )
+        
+        assert len(periods) == 1
+        assert periods[0]["cost"] == 100.0  # Only VM entries (10.0 * 10.0)
+    
+    @patch('backend.services.trend_service.get_consumption')
+    def test_fetch_period_costs_error_handling(self, mock_get_consumption):
+        """Test error handling in fetch period costs."""
+        mock_get_consumption.side_effect = Exception("API Error")
+        
+        period_ranges = [
+            {"period": "2024-01-01", "from_date": "2024-01-01", "to_date": "2024-01-01"}
+        ]
+        
+        periods, currency = _fetch_period_costs(
+            period_ranges, "key", "secret", "region", "account",
+            None, False, use_exclusive_todate=True
+        )
+        
+        assert len(periods) == 1
+        assert periods[0]["cost"] == 0.0
+        assert periods[0]["value"] == 0.0
+        assert periods[0]["entry_count"] == 0
+        assert currency == "EUR"  # Default currency
+    
+    @patch('backend.services.trend_service.get_consumption')
+    def test_fetch_period_costs_progress_callback(self, mock_get_consumption):
+        """Test progress callback in fetch period costs."""
+        mock_get_consumption.return_value = {
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
+            "currency": "EUR"
+        }
+        
+        progress_calls = []
+        def progress_callback(progress, estimated_remaining):
+            progress_calls.append(progress)
+        
+        period_ranges = [
+            {"period": "2024-01-01", "from_date": "2024-01-01", "to_date": "2024-01-01"},
+            {"period": "2024-01-02", "from_date": "2024-01-02", "to_date": "2024-01-02"}
+        ]
+        
+        _fetch_period_costs(
+            period_ranges, "key", "secret", "region", "account",
+            None, False, use_exclusive_todate=True,
+            progress_callback=progress_callback, start_progress=0, end_progress=100
+        )
+        
+        assert len(progress_calls) > 0
+
+
+class TestCalculateTrendMetrics:
+    """Tests for _calculate_trend_metrics function."""
+    
+    def test_calculate_trend_metrics_increasing(self):
+        """Test trend metrics calculation for increasing trend."""
+        periods = [
+            {"period": "2024-01", "cost": 100.0},
+            {"period": "2024-02", "cost": 150.0},
+            {"period": "2024-03", "cost": 200.0}
+        ]
+        
+        metrics = _calculate_trend_metrics(periods)
+        
+        assert metrics["growth_rate"] > 5.0
+        assert metrics["trend_direction"] == "increasing"
+        assert metrics["historical_average"] == 150.0
+        assert len(metrics["period_changes"]) == 2
+    
+    def test_calculate_trend_metrics_decreasing(self):
+        """Test trend metrics calculation for decreasing trend."""
+        periods = [
+            {"period": "2024-01", "cost": 200.0},
+            {"period": "2024-02", "cost": 150.0},
+            {"period": "2024-03", "cost": 100.0}
+        ]
+        
+        metrics = _calculate_trend_metrics(periods)
+        
+        assert metrics["growth_rate"] < -5.0
+        assert metrics["trend_direction"] == "decreasing"
+        assert len(metrics["period_changes"]) == 2
+    
+    def test_calculate_trend_metrics_stable(self):
+        """Test trend metrics calculation for stable trend."""
+        periods = [
+            {"period": "2024-01", "cost": 100.0},
+            {"period": "2024-02", "cost": 102.0},
+            {"period": "2024-03", "cost": 101.0}
+        ]
+        
+        metrics = _calculate_trend_metrics(periods)
+        
+        assert abs(metrics["growth_rate"]) <= 5.0
+        assert metrics["trend_direction"] == "stable"
+    
+    def test_calculate_trend_metrics_single_period(self):
+        """Test trend metrics with single period."""
+        periods = [{"period": "2024-01", "cost": 100.0}]
+        
+        metrics = _calculate_trend_metrics(periods)
+        
+        assert metrics["growth_rate"] == 0.0
+        assert metrics["historical_average"] == 100.0
+        assert len(metrics["period_changes"]) == 0
+
+
+class TestBuildTrendResult:
+    """Tests for _build_trend_result function."""
+    
+    def test_build_trend_result_basic(self):
+        """Test building basic trend result."""
+        periods = [
+            {"period": "2024-01", "cost": 100.0},
+            {"period": "2024-02", "cost": 120.0}
+        ]
+        metrics = {
+            "growth_rate": 20.0,
+            "historical_average": 110.0,
+            "period_changes": [],
+            "trend_direction": "increasing"
+        }
+        
+        result = _build_trend_result(
+            periods, metrics, "EUR", "eu-west-2", "month",
+            "2024-01-01", "2024-02-29", None
+        )
+        
+        assert result["periods"] == periods
+        assert result["growth_rate"] == 20.0
+        assert result["currency"] == "EUR"
+        assert result["total_cost"] == 220.0
+        assert result["period_count"] == 2
+        assert "projected" not in result
+    
+    def test_build_trend_result_with_projection(self):
+        """Test building trend result with projection."""
+        periods = [
+            {"period": "2024-01", "cost": 100.0},
+            {"period": "2024-02", "cost": 110.0, "projected": True}
+        ]
+        metrics = {
+            "growth_rate": 10.0,
+            "historical_average": 100.0,
+            "period_changes": [],
+            "trend_direction": "increasing"
+        }
+        
+        result = _build_trend_result(
+            periods, metrics, "EUR", "eu-west-2", "month",
+            "2024-01-01", "2024-02-29", None,
+            projected=True, projected_periods=1
+        )
+        
+        assert result["projected"] is True
+        assert result["projected_periods"] == 1
+
+
 class TestCalculateTrendsAsync:
     """Tests for calculate_trends_async function."""
     
@@ -949,7 +1210,7 @@ class TestCalculateTrendsAsync:
     def test_calculate_trends_async_progress_callback(self, mock_get_consumption):
         """Test async calculation with progress callback."""
         mock_get_consumption.return_value = {
-            "entries": [{"Price": 100.0, "Value": 10.0}],
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
             "currency": "EUR"
         }
         
@@ -972,7 +1233,7 @@ class TestCalculateTrendsAsync:
     def test_calculate_trends_async_no_callback(self, mock_get_consumption):
         """Test async calculation without callback."""
         mock_get_consumption.return_value = {
-            "entries": [{"Price": 100.0}],
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
             "currency": "EUR"
         }
         
@@ -988,7 +1249,7 @@ class TestCalculateTrendsAsync:
     def test_calculate_trends_async_progress_percentages(self, mock_get_consumption):
         """Test progress percentages are called correctly."""
         mock_get_consumption.return_value = {
-            "entries": [{"Price": 100.0}],
+            "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
             "currency": "EUR"
         }
         
