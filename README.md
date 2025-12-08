@@ -240,6 +240,8 @@ For detailed testing instructions, see [tests/TESTING.md](tests/TESTING.md).
 #### Cost Management (Unified View)
 1. Navigate to the "Cost Management" tab
 2. Select date range and granularity (day/week/month)
+   - **Note**: to_date must be in the past by at least 1 granularity period
+   - **Date semantics**: from_date is inclusive, to_date is exclusive
 3. Optionally select region filter
 4. Create a budget:
    - Click "Create Budget"
@@ -247,13 +249,29 @@ For detailed testing instructions, see [tests/TESTING.md](tests/TESTING.md).
    - Set start date and optional end date
    - Budget will repeat automatically per period
 5. Select a budget to analyze
+   - **When budget is selected**:
+     - Dates are automatically rounded to budget period boundaries (from_date down, to_date up)
+     - Consumption granularity is automatically selected (one level under budget):
+       - Budget yearly/quarterly → monthly
+       - Budget monthly → weekly (special month-based weeks: start on 1st, 4th week extends to month end)
+       - Budget weekly → daily
+     - Consumption is displayed cumulatively (progressive within budget periods, reset at period start)
+     - All periods align with budget boundaries (no crossing)
 6. Click "Load Data" to see:
-   - Consumption data for available periods
+   - Consumption data for available periods (pre-aggregated with total cost calculated)
    - Budget limits per period
-   - Trend projections until budget end date
-   - Unified graph showing all three datasets
+   - Trend projections (only if from_date is in the future):
+     - If from_date is in the past: no projected trend shown
+     - If from_date is in the future: consumption queried until last period excluding today, then trend projected
+   - Unified graph showing all datasets (consumption, budget, trend projection if applicable)
    - Period details table with consumption, budget, remaining, and utilization
 7. Export data as CSV or JSON
+
+**Important Notes**:
+- **ReadAccountConsumption** returns pre-aggregated data: quantity consolidated, total cost calculated (quantity × unit_price)
+- **Trend projection rules**: Projected trends only shown when from_date is in the future
+- **Budget-aware processing**: When budget is selected, all dates and periods are aligned to budget boundaries
+- **Cumulative consumption**: Within each budget period, consumption accumulates progressively and resets at period start
 
 #### Current Cost Evaluation
 1. Navigate to the "Cost" tab

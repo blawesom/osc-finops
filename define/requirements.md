@@ -43,15 +43,22 @@ Design a comprehensive FinOps service for Outscale customers and users, targetin
 ### 2.2 Consumption History (Reference: osc-draft-invoicing)
 **FR-2.1**: Retrieve consumption history with granularity options
 - Query consumption data via ReadConsumptionAccount API
+- **ReadAccountConsumption returns pre-aggregated data**:
+  - Data separated by type (each resource/service type has its own entry)
+  - Consolidated quantity over the queried period
+  - Unit price (does not vary with period - per hour or per month)
+  - Total cost per type calculated: quantity × unit_price
+- **Date range semantics**: FromDate is inclusive, ToDate is exclusive (must be later than FromDate)
+- **Date validation**: to_date must be in the past by at least 1 granularity period
 - Support granularity: per day, per week, per month
 - Filter by date range (from_date, to_date)
 - Filter by region, service, resource type
-- Display consumption entries with cost breakdown
+- Display consumption entries with cost breakdown (Price already calculated)
 - **Note**: Integrated into unified "Cost Management" tab (see FR-4.3)
 
 **FR-2.2**: Consumption Analysis
 - Aggregate consumption by resource type, region, or tag
-- Calculate total costs per period
+- Calculate total costs per period (using pre-calculated Price field)
 - Compare consumption across different time periods
 - Identify top cost drivers
 - Export consumption data to CSV/JSON
@@ -80,7 +87,12 @@ Design a comprehensive FinOps service for Outscale customers and users, targetin
 - Calculate cost growth rate
 - Visualize trends with charts and graphs
 - Compare actual costs vs. historical averages
-- Project trends until specified end date (for budget planning)
+- **Date validation**: to_date must be in the past by at least 1 granularity period
+- **Projection rules**:
+  - If from_date is in the past: do not show projected trend
+  - If from_date is in the future: query consumption until last period excluding today, then project trend from last period to to_date
+- **Period boundary alignment**: When budget is provided, trend periods align with budget period boundaries (no crossing)
+- Project trends until specified end date (for budget planning) with boundary alignment
 - **Note**: Integrated into unified "Cost Management" tab (see FR-4.3)
 
 **FR-4.2**: Cost Drift Analysis
@@ -98,12 +110,26 @@ Design a comprehensive FinOps service for Outscale customers and users, targetin
   - Budgets repeat automatically per period type until end date (if specified) or indefinitely
   - Edit and delete budgets
   - Select budget for analysis
+- **Date Rounding (when budget selected)**:
+  - from_date: round down to period start/beginning
+  - to_date: round up to period end/beginning (exclusive)
+  - Budget displayed for rounded period
+- **Consumption Granularity Selection (when budget selected)**:
+  - Budget yearly or quarterly → use monthly as base period
+  - Budget monthly → use weekly as base period (special month-based weeks: start on 1st, 4th week extends to month end)
+  - Budget weekly → use daily as base period
+- **Cumulative Consumption (when budget selected)**:
+  - Consumption progressively cumulated for each period within the same budget period
+  - Reset to zero at the start of each budget period
+- **Period Boundary Alignment (when budget selected)**:
+  - Period calculations must NOT cross budget period boundaries
+  - All consumption and trend periods align with budget period boundaries
 - **Consumption Display**: Show past consumption for available periods in unified graph
-- **Trend Projection**: Automatically project consumption trends until end of selected budget period
+- **Trend Projection**: Automatically project consumption trends until end of selected budget period (with boundary alignment)
 - **Unified Visualization**: Single chart displaying:
-  - Consumption line (historical data for available periods)
+  - Consumption line (historical data for available periods, cumulative when budget selected)
   - Budget line (horizontal segments per period, repeating)
-  - Trend projection line (from analysis start until budget end date)
+  - Trend projection line (from analysis start until budget end date, only if from_date in future)
 - **Period Analysis**: Table showing consumption, budget, remaining budget, and utilization per period
 - **Data Integration**: All three data sources (consumption, trends, budget) load and align properly
 - Track budget vs. actual spending per period

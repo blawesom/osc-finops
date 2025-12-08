@@ -250,7 +250,14 @@ Enable users to retrieve and analyze consumption history with various granularit
 
 #### Technical Requirements
 - Integration with osc-sdk-python ReadConsumptionAccount API
-- Data aggregation by granularity
+- **ReadAccountConsumption returns pre-aggregated data**:
+  - Data separated by type (each resource/service type has its own entry)
+  - Consolidated quantity over the queried period
+  - Unit price (does not vary with period - per hour or per month)
+  - Total cost per type calculated: quantity × unit_price
+- **Date range semantics**: FromDate is inclusive, ToDate is exclusive (must be later than FromDate)
+- **Date validation**: to_date must be in the past by at least 1 granularity period
+- Data aggregation by granularity (when needed for display)
 - Multi-account and multi-region support
 - Consumption caching with 1-hour TTL
 - Export functionality (CSV, JSON)
@@ -326,6 +333,10 @@ Enable users to analyze cost trends over time and compare estimated costs with a
 - [x] System provides progress updates during trend calculation
 - [x] Cost calculation uses UnitPrice × Value for accurate period costs
 - [x] Date range iteration correctly handles day/week/month boundaries
+- [x] **to_date validation**: Must be in the past by at least 1 granularity period
+- [x] **from_date in past**: Do not show projected trend
+- [x] **from_date in future**: Query consumption until last period excluding today, then project trend from last period to to_date
+- [x] **Period boundary alignment**: When budget is provided, trend periods align with budget period boundaries (no crossing)
 
 #### Technical Requirements
 - Trend calculation algorithms
@@ -375,6 +386,13 @@ The unified view displays:
 - [x] Consumption data points are evenly spaced and aligned with timeline periods
 - [x] All datasets (consumption, trend, budget) use consistent period keys aligned to the timeline
 - [x] Timeline serves as master reference ensuring all data points align correctly on X-axis
+- [x] **Date rounding**: All dates rounded to budget period boundaries (from_date round down, to_date round up)
+- [x] **Consumption granularity selection**: One level under budget granularity
+  - Budget yearly/quarterly → monthly
+  - Budget monthly → weekly (with special month-based weeks: start on 1st, 4th week extends to month end)
+  - Budget weekly → daily
+- [x] **Cumulative consumption**: Progressively cumulated within budget periods, reset at period start
+- [x] **Period boundary alignment**: Period calculations must NOT cross budget period boundaries
 - [ ] Users can set budget alert thresholds (50%, 75%, 90%, 100%) - Future enhancement
 - [ ] Alerts trigger at correct thresholds - Future enhancement
 - [ ] Multi-account budget support - Future enhancement
@@ -383,7 +401,12 @@ The unified view displays:
 - Budget storage in database (SQLite/PostgreSQL with SQLAlchemy)
 - Budget API endpoints (CRUD operations)
 - Budget status calculation (spent vs. budget per period)
-- Trend projection extension until budget end date
+- **Date rounding utilities**: Round from_date down, to_date up to budget period boundaries
+- **Granularity selection**: Determine consumption granularity from budget period type
+- **Monthly weeks calculation**: Special week calculation for monthly budgets (start on 1st, 4th week extends to month end)
+- **Cumulative consumption calculation**: Progressive accumulation within budget periods, reset at period start
+- **Period boundary validation**: Ensure periods do not cross budget boundaries
+- Trend projection extension until budget end date (with boundary alignment)
 - Unified chart visualization (Chart.js) with multiple datasets
 - Data aggregation and alignment for unified display
 - Period calculation (monthly/quarterly/yearly) with proper date handling
