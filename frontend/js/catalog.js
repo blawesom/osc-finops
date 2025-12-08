@@ -31,24 +31,6 @@ const CatalogService = {
         }
     },
     
-    /**
-     * Get available categories for a region
-     */
-    async getCategories(region) {
-        try {
-            const response = await fetch(`${this.API_BASE}/catalog/categories?region=${encodeURIComponent(region)}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                return data.data.categories;
-            } else {
-                throw new Error(data.error?.message || 'Failed to fetch categories');
-            }
-        } catch (error) {
-            console.error('Categories fetch error:', error);
-            throw error;
-        }
-    },
     
     /**
      * Parse catalog entries into a more usable format

@@ -192,23 +192,3 @@ def filter_catalog_by_category(catalog: Dict, category: Optional[str] = None) ->
     ]
 
 
-def get_catalog_categories(catalog: Dict) -> List[str]:
-    """
-    Get list of unique categories in catalog.
-    
-    Args:
-        catalog: Catalog dictionary with entries
-    
-    Returns:
-        List of unique category names
-    """
-    entries = catalog.get("entries", [])
-    categories = set()
-    
-    for entry in entries:
-        category = entry.get("Category")
-        if category:
-            categories.add(category)
-    
-    return sorted(list(categories))
-

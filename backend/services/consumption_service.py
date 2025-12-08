@@ -1,12 +1,15 @@
 """Consumption service for fetching and caching Outscale consumption data."""
 from typing import Dict, Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from collections import defaultdict
+from dateutil.relativedelta import relativedelta
+from calendar import monthrange
 
 from osc_sdk_python import Gateway
 
 from backend.config.settings import CONSUMPTION_CACHE_TTL
 from backend.services.catalog_service import get_catalog
+from backend.utils.api_call_logger import create_logged_gateway, process_and_log_api_call
 
 
 class ConsumptionCache:
@@ -80,15 +83,25 @@ def fetch_consumption(
     """
     Fetch consumption from Outscale API via ReadConsumptionAccount.
     
+    Note: ReadAccountConsumption returns:
+    - Data separated by type (each resource/service type has its own entry)
+    - Consolidated quantity over the queried period
+    - Unit price (does not vary with period - per hour or per month)
+    - Total cost per type still requires calculation: quantity × unit_price
+    
+    Date range semantics:
+    - FromDate is inclusive (included in the time period)
+    - ToDate is exclusive (excluded from the time period, must be later than FromDate)
+    
     Args:
         access_key: Outscale access key
         secret_key: Outscale secret key
         region: Region name
-        from_date: Start date (ISO format: YYYY-MM-DD)
-        to_date: End date (ISO format: YYYY-MM-DD)
+        from_date: Start date (ISO format: YYYY-MM-DD) - inclusive
+        to_date: End date (ISO format: YYYY-MM-DD) - exclusive
     
     Returns:
-        Consumption data dictionary with entries
+        Consumption data dictionary with entries (total cost calculated per type)
     
     Raises:
         ValueError: If dates are invalid
@@ -96,33 +109,55 @@ def fetch_consumption(
     """
     try:
         # Validate date format
-        datetime.strptime(from_date, "%Y-%m-%d")
-        datetime.strptime(to_date, "%Y-%m-%d")
+        from_dt = datetime.strptime(from_date, "%Y-%m-%d")
+        to_dt = datetime.strptime(to_date, "%Y-%m-%d")
         
-        if from_date > to_date:
-            raise ValueError("from_date must be <= to_date")
+        if from_date >= to_date:
+            raise ValueError("from_date must be < to_date (ToDate is exclusive)")
         
-        # Create gateway with credentials
-        gateway = Gateway(
+        # Create gateway with credentials and logging enabled
+        gateway = create_logged_gateway(
             access_key=access_key,
             secret_key=secret_key,
             region=region
         )
         
-        # Call ReadConsumptionAccount API with ShowPrice=True to get UnitPrice and Price
-        response = gateway.ReadConsumptionAccount(
-            FromDate=from_date,
-            ToDate=to_date,
-            ShowPrice=True
+        # Call ReadConsumptionAccount API with ShowPrice=True to get UnitPrice
+        # Note: API returns consolidated quantity per type, we need to calculate total cost
+        response = process_and_log_api_call(
+            gateway=gateway,
+            api_method="ReadConsumptionAccount",
+            call_func=lambda: gateway.ReadConsumptionAccount(
+                FromDate=from_date,
+                ToDate=to_date,
+                ShowPrice=True
+            ),
+            from_date=from_date,
+            to_date=to_date
         )
         
         # Extract consumption entries
         entries = response.get("ConsumptionEntries", [])
         
-        # Add region to each entry if not already present
+        # Process entries: calculate total cost per type (quantity × unit_price)
+        processed_entries = []
         for entry in entries:
-            if "Region" not in entry and "region" not in entry:
-                entry["Region"] = region
+            # Get quantity (consolidated over the period)
+            quantity = entry.get("Value", 0.0) or 0.0
+            # Get unit price (does not vary with period)
+            unit_price = entry.get("UnitPrice", 0.0) or 0.0
+            # Calculate total cost: quantity × unit_price
+            total_cost = quantity * unit_price
+            
+            # Create processed entry with calculated total cost
+            processed_entry = {
+                **entry,
+                "Value": quantity,
+                "UnitPrice": unit_price,
+                "Price": total_cost,  # Total cost for this type over the period
+                "Region": entry.get("Region") or region
+            }
+            processed_entries.append(processed_entry)
         
         # Get currency from catalog for this region
         currency = None
@@ -138,8 +173,8 @@ def fetch_consumption(
             "to_date": to_date,
             "region": region,
             "currency": currency,
-            "entries": entries,
-            "entry_count": len(entries),
+            "entries": processed_entries,
+            "entry_count": len(processed_entries),
             "fetched_at": datetime.utcnow().isoformat()
         }
     
@@ -443,53 +478,280 @@ def calculate_totals(consumption_data: Dict) -> Dict:
     }
 
 
-def get_top_cost_drivers(consumption_data: Dict, limit: int = 10) -> List[Dict]:
+def validate_to_date_past(granularity: str, to_date: str) -> bool:
     """
-    Identify top cost drivers sorted by total cost.
+    Validate that to_date is in the past by at least 1 granularity period.
+    
+    Args:
+        granularity: "day", "week", or "month"
+        to_date: End date (ISO format: YYYY-MM-DD)
+    
+    Returns:
+        True if to_date is in the past by at least 1 granularity period
+    """
+    try:
+        to_dt = datetime.strptime(to_date, "%Y-%m-%d")
+        today = datetime.utcnow().date()
+        to_date_obj = to_dt.date()
+        
+        if granularity == "day":
+            required_past = today - timedelta(days=1)
+        elif granularity == "week":
+            required_past = today - timedelta(weeks=1)
+        elif granularity == "month":
+            required_past = today - relativedelta(months=1)
+        else:
+            return False
+        
+        return to_date_obj <= required_past
+    except ValueError:
+        return False
+
+
+def round_to_period_start(date_str: str, granularity: str) -> str:
+    """
+    Round date down to period start/beginning.
+    
+    Args:
+        date_str: Date string (ISO format: YYYY-MM-DD)
+        granularity: "day", "week", or "month"
+    
+    Returns:
+        Rounded date string (ISO format: YYYY-MM-DD)
+    """
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+        
+        if granularity == "day":
+            return date_obj.isoformat()
+        elif granularity == "week":
+            # Round down to Monday of the week
+            days_since_monday = date_obj.weekday()
+            monday = date_obj - timedelta(days=days_since_monday)
+            return monday.isoformat()
+        elif granularity == "month":
+            # Round down to first day of the month
+            first_day = date_obj.replace(day=1)
+            return first_day.isoformat()
+        else:
+            return date_str
+    except ValueError:
+        return date_str
+
+
+def round_to_period_end(date_str: str, granularity: str) -> str:
+    """
+    Round date up to period end/beginning (exclusive ToDate).
+    
+    Args:
+        date_str: Date string (ISO format: YYYY-MM-DD)
+        granularity: "day", "week", or "month"
+    
+    Returns:
+        Rounded date string (ISO format: YYYY-MM-DD) - exclusive ToDate
+    """
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+        
+        if granularity == "day":
+            # Round up to next day (exclusive)
+            next_day = date_obj + timedelta(days=1)
+            return next_day.isoformat()
+        elif granularity == "week":
+            # Round up to Monday of next week (exclusive)
+            days_since_monday = date_obj.weekday()
+            days_until_next_monday = 7 - days_since_monday
+            next_monday = date_obj + timedelta(days=days_until_next_monday)
+            return next_monday.isoformat()
+        elif granularity == "month":
+            # Round up to first day of next month (exclusive)
+            if date_obj.month == 12:
+                next_month = date_obj.replace(year=date_obj.year + 1, month=1, day=1)
+            else:
+                next_month = date_obj.replace(month=date_obj.month + 1, day=1)
+            return next_month.isoformat()
+        else:
+            return date_str
+    except ValueError:
+        return date_str
+
+
+def get_consumption_granularity_from_budget(period_type: str) -> str:
+    """
+    Determine consumption granularity from budget period type.
+    
+    Rules:
+    - Budget yearly or quarterly → monthly
+    - Budget monthly → weekly
+    - Budget weekly → daily
+    
+    Args:
+        period_type: Budget period type ("monthly", "quarterly", "yearly")
+    
+    Returns:
+        Consumption granularity ("day", "week", or "month")
+    """
+    if period_type == "yearly" or period_type == "quarterly":
+        return "month"
+    elif period_type == "monthly":
+        return "week"
+    else:
+        # Default to day for weekly budgets or unknown types
+        return "day"
+
+
+def calculate_monthly_weeks(year: int, month: int) -> List[Dict[str, str]]:
+    """
+    Calculate weeks for a month with special rules:
+    - Always start on the 1st of the month
+    - First 3 weeks are standard 7-day weeks
+    - Fourth week extends to 8-10 days depending on actual month length
+    
+    Args:
+        year: Year
+        month: Month (1-12)
+    
+    Returns:
+        List of week dictionaries with from_date and to_date (exclusive)
+    """
+    # Get first day of month
+    first_day = date(year, month, 1)
+    # Get last day of month
+    last_day_num = monthrange(year, month)[1]
+    last_day = date(year, month, last_day_num)
+    
+    weeks = []
+    
+    # Week 1: Days 1-7
+    week1_start = first_day
+    week1_end = min(date(year, month, 7), last_day)
+    weeks.append({
+        "from_date": week1_start.isoformat(),
+        "to_date": (week1_end + timedelta(days=1)).isoformat()  # Exclusive
+    })
+    
+    # Week 2: Days 8-14
+    if last_day_num >= 8:
+        week2_start = date(year, month, 8)
+        week2_end = min(date(year, month, 14), last_day)
+        weeks.append({
+            "from_date": week2_start.isoformat(),
+            "to_date": (week2_end + timedelta(days=1)).isoformat()  # Exclusive
+        })
+    
+    # Week 3: Days 15-21
+    if last_day_num >= 15:
+        week3_start = date(year, month, 15)
+        week3_end = min(date(year, month, 21), last_day)
+        weeks.append({
+            "from_date": week3_start.isoformat(),
+            "to_date": (week3_end + timedelta(days=1)).isoformat()  # Exclusive
+        })
+    
+    # Week 4: Days 22 to end of month (8-10 days depending on month length)
+    if last_day_num >= 22:
+        week4_start = date(year, month, 22)
+        week4_end = last_day
+        weeks.append({
+            "from_date": week4_start.isoformat(),
+            "to_date": (week4_end + timedelta(days=1)).isoformat()  # Exclusive
+        })
+    
+    return weeks
+
+
+def align_consumption_periods_to_budget(consumption_data: Dict, budget) -> Dict:
+    """
+    Align consumption periods to budget period boundaries to ensure periods don't cross budget boundaries.
     
     Args:
         consumption_data: Consumption data dictionary with entries
-        limit: Number of top drivers to return
+        budget: Budget object with period_type
     
     Returns:
-        List of top cost drivers with breakdown
+        Consumption data with periods aligned to budget boundaries
     """
-    entries = consumption_data.get("entries", [])
+    # This function will be used to split/truncate periods at budget boundaries
+    # Implementation depends on how periods are structured in consumption_data
+    # For now, return as-is - actual alignment will be done during period generation
+    return consumption_data
+
+
+def split_periods_at_budget_boundaries(periods: List[Dict], budget) -> List[Dict]:
+    """
+    Split periods at budget boundaries to ensure no period crosses a budget boundary.
     
-    if not entries:
-        return []
+    Args:
+        periods: List of period dictionaries with from_date and to_date
+        budget: Budget object with period_type, start_date
     
-    # Group by service+type+operation
-    grouped = defaultdict(lambda: {"price": 0.0, "value": 0.0, "count": 0})
+    Returns:
+        List of periods split at budget boundaries
+    """
+    if not periods or not budget:
+        return periods
     
-    for entry in entries:
-        service = entry.get("Service", "Unknown")
-        resource_type = entry.get("Type", "Unknown")
-        operation = entry.get("Operation", "Unknown")
-        key = f"{service}/{resource_type}/{operation}"
+    split_periods = []
+    
+    # Get budget period boundaries
+    budget_start = budget.start_date
+    if isinstance(budget_start, str):
+        budget_start = datetime.strptime(budget_start, "%Y-%m-%d").date()
+    
+    # Determine budget period delta
+    if budget.period_type == 'monthly':
+        delta = relativedelta(months=1)
+    elif budget.period_type == 'quarterly':
+        delta = relativedelta(months=3)
+    else:  # yearly
+        delta = relativedelta(years=1)
+    
+    # Generate budget boundaries
+    budget_boundaries = []
+    current_boundary = budget_start
+    max_date = max(
+        datetime.strptime(p.get("to_date", "1900-01-01"), "%Y-%m-%d").date()
+        for p in periods
+    ) if periods else budget_start
+    
+    while current_boundary <= max_date:
+        budget_boundaries.append(current_boundary)
+        current_boundary = current_boundary + delta
+    
+    # Split periods at boundaries
+    for period in periods:
+        period_from = datetime.strptime(period.get("from_date", ""), "%Y-%m-%d").date()
+        period_to = datetime.strptime(period.get("to_date", ""), "%Y-%m-%d").date()
         
-        grouped[key]["price"] += entry.get("Price", 0.0) or 0.0
-        grouped[key]["value"] += entry.get("Value", 0.0) or 0.0
-        grouped[key]["count"] += 1
+        # Find boundaries that intersect with this period
+        intersecting_boundaries = [
+            b for b in budget_boundaries
+            if period_from < b < period_to
+        ]
+        
+        if not intersecting_boundaries:
+            # No boundaries to split at, keep period as-is
+            split_periods.append(period)
+        else:
+            # Split period at each boundary
+            current_start = period_from
+            for boundary in sorted(intersecting_boundaries):
+                # Add period from current_start to boundary
+                split_periods.append({
+                    **period,
+                    "from_date": current_start.isoformat(),
+                    "to_date": boundary.isoformat()
+                })
+                current_start = boundary
+            
+            # Add remaining period
+            if current_start < period_to:
+                split_periods.append({
+                    **period,
+                    "from_date": current_start.isoformat(),
+                    "to_date": period_to.isoformat()
+                })
     
-    # Sort by price (descending) and take top N
-    sorted_drivers = sorted(
-        grouped.items(),
-        key=lambda x: x[1]["price"],
-        reverse=True
-    )[:limit]
-    
-    result = []
-    for key, data in sorted_drivers:
-        parts = key.split("/")
-        result.append({
-            "service": parts[0] if len(parts) > 0 else "Unknown",
-            "resource_type": parts[1] if len(parts) > 1 else "Unknown",
-            "operation": parts[2] if len(parts) > 2 else "Unknown",
-            "total_price": data["price"],
-            "total_value": data["value"],
-            "entry_count": data["count"]
-        })
-    
-    return result
+    return split_periods
+
 

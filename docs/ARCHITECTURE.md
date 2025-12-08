@@ -90,11 +90,14 @@ OSC-FinOps is a comprehensive FinOps service designed for Outscale customers, pr
   - catalog_service  quote_service_db  consumption_service
   - cost_service  trend_service
   - budget_service
+  - **consumption_service**: Pre-aggregated data handling, date validation and rounding utilities,
+    granularity selection from budget, period boundary alignment, monthly weeks calculation
   - **trend_service**: Async trend calculation with progress tracking, 
-    date range iteration fixes, accurate cost calculation (UnitPrice × Value),
-    trend projection until specified end date
+    date validation (to_date must be in past), projection rules based on from_date position,
+    accurate cost calculation (UnitPrice × Value), trend projection with budget boundary alignment
   - **budget_service**: Budget CRUD operations, period calculation, 
-    budget status calculation (spent vs. budget per period)
+    budget status calculation (spent vs. budget per period), date rounding (from_date down, to_date up),
+    cumulative consumption calculation, granularity selection, period boundary validation
 - **Auth Module** (`backend/auth/`): Session management, credential validation
 - **Models** (`backend/models/`): Data models including Budget model for database persistence
 - **Models** (`backend/models/`): Data models and schemas
@@ -175,15 +178,80 @@ User → Frontend (Quote Management)
 ```
 User → Frontend (Consumption Module)
   → GET /api/consumption?from_date=X&to_date=Y&granularity=day
+  → Backend Consumption API
+  → Validate to_date is in past by at least 1 granularity period
+  → Validate from_date < to_date (ToDate is exclusive)
   → Backend Consumption Service
   → Check cache (1h TTL, keyed by params)
   → If miss: Call osc-sdk-python ReadConsumptionAccount API
-  → Aggregate by granularity (day/week/month)
+    → API returns pre-aggregated data:
+      - Separated by type
+      - Consolidated quantity over period
+      - Unit price (per hour or per month)
+    → Calculate total cost per type: quantity × unit_price
   → Cache and return consumption data
-  → Frontend displays consumption table/chart
+  → Frontend displays consumption table/chart (Price already calculated)
 ```
 
-### 3.4 Current Cost Evaluation Flow
+**Key Changes**:
+- ReadAccountConsumption returns pre-aggregated data (quantity consolidated, cost calculated)
+- FromDate is inclusive, ToDate is exclusive
+- to_date must be in the past by at least 1 granularity period
+- Total cost calculation: quantity × unit_price (done in service layer)
+
+### 3.4 Trend Analysis Flow
+
+```
+User → Frontend (Cost Management Module)
+  → GET /api/trends?from_date=X&to_date=Y&granularity=day&budget_id=Z
+  → Backend Trends API
+  → Validate to_date is in past by at least 1 granularity period
+  → Validate from_date < to_date (ToDate is exclusive)
+  → Backend Trend Service
+  → Check if from_date is in past or future
+  → If from_date in past: Query consumption until to_date, no projection
+  → If from_date in future: Query consumption until last period excluding today, then project
+  → If budget provided: Align periods to budget boundaries
+  → Calculate trends (growth rate, historical average, period changes)
+  → Project trend if needed (respecting budget boundaries)
+  → Return trend data with projection flag
+  → Frontend displays trends (projected periods shown with dashed line)
+```
+
+**Key Changes**:
+- to_date must be in past by at least 1 granularity period
+- If from_date in past: no projected trend shown
+- If from_date in future: query until last period excluding today, then project
+- Periods align with budget boundaries when budget is provided
+
+### 3.5 Budget Status Flow
+
+```
+User → Frontend (Cost Management Module)
+  → GET /api/budgets/{budget_id}/status?from_date=X&to_date=Y
+  → Backend Budget API
+  → Validate from_date < to_date (ToDate is exclusive)
+  → Backend Budget Service
+  → Round dates to budget period boundaries (from_date down, to_date up)
+  → Determine consumption granularity (one level under budget)
+    - Budget yearly/quarterly → monthly
+    - Budget monthly → weekly (special month-based weeks)
+    - Budget weekly → daily
+  → Generate consumption periods (respecting budget boundaries)
+  → Fetch consumption data for each period
+  → Calculate cumulative consumption (progressive within period, reset at start)
+  → Return budget status with cumulative consumption per period
+  → Frontend displays cumulative consumption vs. budget
+```
+
+**Key Changes**:
+- Date rounding: from_date round down, to_date round up to budget period boundaries
+- Consumption granularity: one level under budget granularity
+- Monthly weeks: start on 1st, 4th week extends to month end
+- Cumulative consumption: progressive within budget periods, reset at period start
+- Periods must not cross budget boundaries
+
+### 3.6 Current Cost Evaluation Flow
 
 ```
 User → Frontend (Cost Tab)
@@ -722,11 +790,6 @@ Quote:
 - `DELETE /api/quotes/{id}/items/{item_id}`
 - **Auth**: Required
 - **Response**: Updated quote object
-
-**Calculate Quote**:
-- `GET /api/quotes/{id}/calculate`
-- **Auth**: Required
-- **Response**: Calculation object with totals and breakdown
 
 **Export Quote to CSV**:
 - `GET /api/quotes/{id}/export/csv`

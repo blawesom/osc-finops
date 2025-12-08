@@ -139,26 +139,6 @@ const QuoteService = {
         }
     },
     
-    /**
-     * Calculate quote
-     */
-    async calculateQuote(quoteId) {
-        try {
-            const response = await fetch(`${this.API_BASE}/quotes/${quoteId}/calculate`, {
-                headers: this.getHeaders()
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-                return data.data;
-            } else {
-                throw new Error(data.error?.message || 'Failed to calculate quote');
-            }
-        } catch (error) {
-            console.error('Calculate quote error:', error);
-            throw error;
-        }
-    },
     
     /**
      * Export quote to CSV

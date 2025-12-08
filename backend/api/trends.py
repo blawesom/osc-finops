@@ -6,7 +6,12 @@ from typing import Optional
 from flask import Blueprint, request, jsonify, Response
 from datetime import datetime
 
-from backend.services.trend_service import calculate_trends, calculate_trends_async, project_trend_until_date
+from backend.services.trend_service import (
+    calculate_trends, 
+    calculate_trends_async, 
+    project_trend_until_date,
+    validate_date_range
+)
 from backend.services.job_queue import job_queue
 from backend.config.settings import SUPPORTED_REGIONS
 from backend.utils.errors import APIError
@@ -61,8 +66,13 @@ def get_trends():
         raise APIError("Invalid date format. Use YYYY-MM-DD", status_code=400)
     
     # Validate date range
-    if from_date > to_date:
-        raise APIError("from_date must be <= to_date", status_code=400)
+    if from_date >= to_date:
+        raise APIError("from_date must be < to_date (ToDate is exclusive)", status_code=400)
+    
+    # Validate date range using trend service validation
+    is_valid, error_msg = validate_date_range(from_date, to_date, granularity)
+    if not is_valid:
+        raise APIError(error_msg, status_code=400)
     
     # Validate granularity
     if granularity not in ['day', 'week', 'month']:
@@ -83,8 +93,19 @@ def get_trends():
     # Use session region if region not specified
     query_region = region or session.region
     
+    # Get budget_id if provided (for boundary alignment)
+    budget_id = request.args.get('budget_id')
+    budget = None
+    if budget_id:
+        # Import here to avoid circular dependency
+        from backend.services.budget_service import get_budget
+        from backend.utils.session_helpers import get_user_id_from_session
+        user_id = get_user_id_from_session()
+        if user_id:
+            budget = get_budget(budget_id, user_id)
+    
     try:
-        # Calculate trends
+        # Calculate trends with new validation and projection rules
         trend_data = calculate_trends(
             access_key=session.access_key,
             secret_key=session.secret_key,
@@ -94,18 +115,10 @@ def get_trends():
             to_date=to_date,
             granularity=granularity,
             resource_type=resource_type,
-            force_refresh=force_refresh
+            force_refresh=force_refresh,
+            budget=budget,
+            project_until=project_until
         )
-        
-        # Project trend until specified date if requested
-        if project_until:
-            try:
-                datetime.strptime(project_until, "%Y-%m-%d")
-                if project_until > to_date:
-                    trend_data = project_trend_until_date(trend_data, project_until)
-            except ValueError:
-                # Invalid date format, ignore projection
-                pass
         
         return jsonify({
             "success": True,
@@ -124,87 +137,6 @@ def get_trends():
         raise APIError(str(e), status_code=400)
     except Exception as e:
         raise APIError(f"Failed to calculate trends: {str(e)}", status_code=500)
-
-
-@trends_bp.route('/trends/export', methods=['GET'])
-@require_auth
-def export_trends():
-    """
-    Export trend data to CSV or JSON.
-    Authentication required.
-    
-    Query parameters:
-        - Same as /trends endpoint
-        - format: "csv" or "json" (required)
-    """
-    session = getattr(request, 'session', None)
-    if not session:
-        raise APIError("Authentication required", status_code=401)
-    
-    export_format = request.args.get('format', 'json').lower()
-    
-    if export_format not in ['csv', 'json']:
-        raise APIError("format must be 'csv' or 'json'", status_code=400)
-    
-    # Get trend data using same logic as main endpoint
-    from_date = request.args.get('from_date')
-    to_date = request.args.get('to_date')
-    granularity = request.args.get('granularity', 'day')
-    region = request.args.get('region')
-    resource_type = request.args.get('resource_type')
-    force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
-    
-    if not from_date or not to_date:
-        raise APIError("from_date and to_date parameters are required", status_code=400)
-    
-    # Get account_id from session
-    account_id = get_account_id_from_session()
-    if not account_id:
-        raise APIError("Could not retrieve account information", status_code=401)
-    
-    query_region = region or session.region
-    
-    try:
-        # Calculate trends
-        trend_data = calculate_trends(
-            access_key=session.access_key,
-            secret_key=session.secret_key,
-            region=query_region,
-            account_id=account_id,
-            from_date=from_date,
-            to_date=to_date,
-            granularity=granularity,
-            resource_type=resource_type,
-            force_refresh=force_refresh
-        )
-        
-        periods = trend_data.get("periods", [])
-        
-        if export_format == 'csv':
-            # Generate CSV
-            output = io.StringIO()
-            if periods:
-                fieldnames = ["period", "from_date", "to_date", "cost", "value", "entry_count"]
-                writer = csv.DictWriter(output, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(periods)
-            
-            return Response(
-                output.getvalue(),
-                mimetype='text/csv',
-                headers={
-                    'Content-Disposition': f'attachment; filename=trends_{from_date}_to_{to_date}.csv'
-                }
-            )
-        else:
-            # Return JSON
-            return jsonify({
-                "success": True,
-                "data": trend_data
-            }), 200
-    
-    except Exception as e:
-        raise APIError(f"Failed to export trends: {str(e)}", status_code=500)
 
 
 @trends_bp.route('/trends/async', methods=['POST'])

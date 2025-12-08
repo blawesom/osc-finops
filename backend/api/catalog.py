@@ -1,6 +1,6 @@
 """Catalog API endpoints."""
 from flask import Blueprint, request, jsonify
-from backend.services.catalog_service import get_catalog, filter_catalog_by_category, get_catalog_categories
+from backend.services.catalog_service import get_catalog, filter_catalog_by_category
 from backend.config.settings import SUPPORTED_REGIONS
 from backend.utils.errors import APIError
 
@@ -54,39 +54,4 @@ def get_catalog_endpoint():
     except Exception as e:
         raise APIError(f"Failed to fetch catalog: {str(e)}", status_code=500)
 
-
-@catalog_bp.route('/catalog/categories', methods=['GET'])
-def get_categories_endpoint():
-    """
-    Get available categories for a region.
-    No authentication required.
-    
-    Query parameters:
-        - region: Region name (required)
-    """
-    region = request.args.get('region')
-    
-    if not region:
-        raise APIError("Region parameter is required", status_code=400)
-    
-    if region not in SUPPORTED_REGIONS:
-        raise APIError(
-            f"Unsupported region: {region}. Supported regions: {', '.join(SUPPORTED_REGIONS)}",
-            status_code=400
-        )
-    
-    try:
-        catalog = get_catalog(region)
-        categories = get_catalog_categories(catalog)
-        
-        return jsonify({
-            "success": True,
-            "data": {
-                "region": region,
-                "categories": categories
-            }
-        }), 200
-    
-    except Exception as e:
-        raise APIError(f"Failed to fetch categories: {str(e)}", status_code=500)
 

@@ -10,7 +10,7 @@ from backend.services.consumption_service import (
     filter_consumption,
     aggregate_by_dimension,
     calculate_totals,
-    get_top_cost_drivers
+    validate_to_date_past
 )
 from backend.config.settings import SUPPORTED_REGIONS
 from backend.utils.errors import APIError
@@ -68,8 +68,15 @@ def get_consumption_endpoint():
         raise APIError("Invalid date format. Use YYYY-MM-DD", status_code=400)
     
     # Validate date range
-    if from_date > to_date:
-        raise APIError("from_date must be <= to_date", status_code=400)
+    if from_date >= to_date:
+        raise APIError("from_date must be < to_date (ToDate is exclusive)", status_code=400)
+    
+    # Validate to_date is in the past by at least 1 granularity period
+    if not validate_to_date_past(granularity, to_date):
+        raise APIError(
+            f"to_date must be in the past by at least 1 {granularity} period",
+            status_code=400
+        )
     
     # Validate granularity
     if granularity not in ['day', 'week', 'month']:
@@ -269,80 +276,4 @@ def export_consumption_endpoint():
     except Exception as e:
         raise APIError(f"Failed to export consumption: {str(e)}", status_code=500)
 
-
-@consumption_bp.route('/consumption/top-drivers', methods=['GET'])
-@require_auth
-def get_top_drivers_endpoint():
-    """
-    Get top cost drivers for consumption data.
-    Authentication required.
-    
-    Query parameters:
-        - Same as /consumption endpoint
-        - limit: Number of top drivers (optional, default: 10)
-    """
-    session = getattr(request, 'session', None)
-    if not session:
-        raise APIError("Authentication required", status_code=401)
-    
-    # Get query parameters
-    from_date = request.args.get('from_date')
-    to_date = request.args.get('to_date')
-    region = request.args.get('region')
-    service = request.args.get('service')
-    resource_type = request.args.get('resource_type')
-    force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
-    limit = int(request.args.get('limit', 10))
-    
-    if not from_date or not to_date:
-        raise APIError("from_date and to_date parameters are required", status_code=400)
-    
-    # Get account_id from session
-    account_id = get_account_id_from_session()
-    if not account_id:
-        raise APIError("Could not retrieve account information", status_code=401)
-    
-    query_region = region or session.region
-    
-    try:
-        # Get consumption data
-        consumption_data = get_consumption(
-            access_key=session.access_key,
-            secret_key=session.secret_key,
-            region=query_region,
-            account_id=account_id,
-            from_date=from_date,
-            to_date=to_date,
-            force_refresh=force_refresh
-        )
-        
-        # Apply filters
-        if region or service or resource_type:
-            consumption_data = filter_consumption(
-                consumption_data,
-                region=region,
-                service=service,
-                resource_type=resource_type
-            )
-        
-        # Get top drivers
-        top_drivers = get_top_cost_drivers(consumption_data, limit=limit)
-        
-        # Get currency from consumption data if available
-        currency = consumption_data.get("currency")
-        
-        return jsonify({
-            "success": True,
-            "data": {
-                "top_drivers": top_drivers,
-                "limit": limit,
-                "currency": currency
-            },
-            "metadata": {
-                "region": query_region
-            }
-        }), 200
-    
-    except Exception as e:
-        raise APIError(f"Failed to fetch top drivers: {str(e)}", status_code=500)
 

@@ -237,33 +237,6 @@ def remove_quote_item(quote_id, item_id):
         db.close()
 
 
-@quote_bp.route('/quotes/<quote_id>/calculate', methods=['GET'])
-@require_auth
-def calculate_quote(quote_id):
-    """
-    Calculate quote totals.
-    Requires authentication.
-    Verifies ownership.
-    """
-    user_id = get_user_id_from_session()
-    if not user_id:
-        raise APIError("Authentication required", status_code=401)
-    
-    db = SessionLocal()
-    try:
-        quote = QuoteServiceDB.get_quote(db, quote_id, user_id)
-        if not quote:
-            raise APIError("Quote not found", status_code=404)
-        
-        calculation = quote.to_dict()['calculation']
-        return jsonify({
-            "success": True,
-            "data": calculation
-        }), 200
-    finally:
-        db.close()
-
-
 @quote_bp.route('/quotes/<quote_id>/export/csv', methods=['GET'])
 @require_auth
 def export_quote_csv(quote_id):

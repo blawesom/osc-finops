@@ -28,13 +28,21 @@ const TrendsService = {
 
     /**
      * Get trend analysis data.
+     * 
+     * Note: New validation and projection rules:
+     * - to_date must be in the past by at least 1 granularity period
+     * - If from_date is in the past: do not show projected trend
+     * - If from_date is in the future: query consumption until last period excluding today, then project trend
+     * 
      * @param {Object} params - Query parameters
      * @param {string} params.from_date - Start date (YYYY-MM-DD)
-     * @param {string} params.to_date - End date (YYYY-MM-DD)
+     * @param {string} params.to_date - End date (YYYY-MM-DD) - must be in past
      * @param {string} [params.granularity] - Granularity: 'day', 'week', 'month'
      * @param {string} [params.region] - Filter by region
      * @param {string} [params.resource_type] - Filter by resource type
      * @param {boolean} [params.force_refresh] - Force cache refresh
+     * @param {string} [params.project_until] - End date for trend projection
+     * @param {string} [params.budget_id] - Budget ID for period boundary alignment
      * @returns {Promise<Object>} Trend data
      */
     async getTrends(params) {
@@ -51,6 +59,7 @@ const TrendsService = {
             if (params.resource_type) queryParams.append('resource_type', params.resource_type);
             if (params.force_refresh) queryParams.append('force_refresh', 'true');
             if (params.project_until) queryParams.append('project_until', params.project_until);
+            if (params.budget_id) queryParams.append('budget_id', params.budget_id);
             
             const response = await fetch(`${this.API_BASE}/trends?${queryParams.toString()}`, {
                 method: 'GET',
@@ -173,56 +182,5 @@ const TrendsService = {
         });
     },
 
-    /**
-     * Export trend data.
-     * @param {Object} params - Same as getTrends
-     * @param {string} format - Export format: 'csv' or 'json'
-     * @returns {Promise<Blob|Object>} Exported data
-     */
-    async exportTrends(params, format = 'csv') {
-        try {
-            const queryParams = new URLSearchParams();
-            
-            // Required parameters
-            if (params.from_date) queryParams.append('from_date', params.from_date);
-            if (params.to_date) queryParams.append('to_date', params.to_date);
-            
-            // Optional parameters
-            if (params.granularity) queryParams.append('granularity', params.granularity);
-            if (params.region) queryParams.append('region', params.region);
-            if (params.resource_type) queryParams.append('resource_type', params.resource_type);
-            if (params.force_refresh) queryParams.append('force_refresh', 'true');
-            queryParams.append('format', format);
-            
-            const response = await fetch(`${this.API_BASE}/trends/export?${queryParams.toString()}`, {
-                method: 'GET',
-                headers: this.getHeaders()
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            if (format === 'csv') {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `trends_${params.from_date}_to_${params.to_date}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-                return blob;
-            } else {
-                const data = await response.json();
-                return data;
-            }
-        } catch (error) {
-            console.error('Export trends error:', error);
-            throw error;
-        }
-    }
 };
 

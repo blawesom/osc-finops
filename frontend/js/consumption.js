@@ -30,16 +30,23 @@ const ConsumptionService = {
 
     /**
      * Get consumption data
+     * 
+     * Note: ReadAccountConsumption returns pre-aggregated data:
+     * - Data separated by type (each resource/service type has its own entry)
+     * - Consolidated quantity over the queried period
+     * - Unit price (does not vary with period)
+     * - Total cost per type already calculated (quantity × unit_price) in Price field
+     * 
      * @param {Object} params - Query parameters
-     * @param {string} params.from_date - Start date (YYYY-MM-DD)
-     * @param {string} params.to_date - End date (YYYY-MM-DD)
+     * @param {string} params.from_date - Start date (YYYY-MM-DD) - inclusive
+     * @param {string} params.to_date - End date (YYYY-MM-DD) - exclusive
      * @param {string} [params.granularity] - Granularity: 'day', 'week', 'month'
      * @param {string} [params.region] - Filter by region
      * @param {string} [params.service] - Filter by service
      * @param {string} [params.resource_type] - Filter by resource type
      * @param {string} [params.aggregate_by] - Aggregate by: 'resource_type', 'region', 'tag'
      * @param {boolean} [params.force_refresh] - Force cache refresh
-     * @returns {Promise<Object>} Consumption data
+     * @returns {Promise<Object>} Consumption data with pre-aggregated entries
      */
     async getConsumption(params) {
         try {
@@ -129,48 +136,5 @@ const ConsumptionService = {
         }
     },
 
-    /**
-     * Get top cost drivers
-     * @param {Object} params - Same as getConsumption
-     * @param {number} [limit=10] - Number of top drivers
-     * @returns {Promise<Object>} Top drivers data
-     */
-    async getTopDrivers(params, limit = 10) {
-        try {
-            const queryParams = new URLSearchParams();
-            
-            // Required parameters
-            if (params.from_date) queryParams.append('from_date', params.from_date);
-            if (params.to_date) queryParams.append('to_date', params.to_date);
-            
-            // Optional parameters
-            if (params.region) queryParams.append('region', params.region);
-            if (params.service) queryParams.append('service', params.service);
-            if (params.resource_type) queryParams.append('resource_type', params.resource_type);
-            if (params.force_refresh) queryParams.append('force_refresh', 'true');
-            
-            queryParams.append('limit', limit.toString());
-            
-            const response = await fetch(`${this.API_BASE}/consumption/top-drivers?${queryParams.toString()}`, {
-                method: 'GET',
-                headers: this.getHeaders()
-            });
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error?.message || `HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            if (data.success) {
-                return data;
-            } else {
-                throw new Error(data.error?.message || 'Failed to fetch top drivers');
-            }
-        } catch (error) {
-            console.error('Get top drivers error:', error);
-            throw error;
-        }
-    }
 };
 
