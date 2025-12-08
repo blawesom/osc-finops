@@ -8,6 +8,7 @@ from osc_sdk_python import Gateway
 
 from backend.config.settings import CONSUMPTION_CACHE_TTL
 from backend.services.catalog_service import get_catalog
+from backend.utils.api_call_logger import create_logged_gateway, process_and_log_api_call
 
 # Constants
 HOURS_PER_MONTH = (365 * 24) / 12  # 730 hours per month
@@ -92,8 +93,8 @@ def fetch_resources(
         Exception: If API call fails
     """
     try:
-        # Create gateway with credentials
-        gateway = Gateway(
+        # Create gateway with credentials and logging enabled
+        gateway = create_logged_gateway(
             access_key=access_key,
             secret_key=secret_key,
             region=region
@@ -103,7 +104,11 @@ def fetch_resources(
         
         # Fetch VMs
         try:
-            vms_response = gateway.ReadVms()
+            vms_response = process_and_log_api_call(
+                gateway=gateway,
+                api_method="ReadVms",
+                call_func=lambda: gateway.ReadVms()
+            )
             vms = vms_response.get("Vms", [])
             for vm in vms:
                 resources.append({
@@ -142,7 +147,11 @@ def fetch_resources(
         
         # Fetch Volumes
         try:
-            volumes_response = gateway.ReadVolumes()
+            volumes_response = process_and_log_api_call(
+                gateway=gateway,
+                api_method="ReadVolumes",
+                call_func=lambda: gateway.ReadVolumes()
+            )
             volumes = volumes_response.get("Volumes", [])
             for volume in volumes:
                 resources.append({
@@ -166,7 +175,11 @@ def fetch_resources(
         
         # Fetch Snapshots
         try:
-            snapshots_response = gateway.ReadSnapshots()
+            snapshots_response = process_and_log_api_call(
+                gateway=gateway,
+                api_method="ReadSnapshots",
+                call_func=lambda: gateway.ReadSnapshots()
+            )
             snapshots = snapshots_response.get("Snapshots", [])
             for snapshot in snapshots:
                 resources.append({
@@ -188,7 +201,11 @@ def fetch_resources(
         
         # Fetch Public IPs
         try:
-            public_ips_response = gateway.ReadPublicIps()
+            public_ips_response = process_and_log_api_call(
+                gateway=gateway,
+                api_method="ReadPublicIps",
+                call_func=lambda: gateway.ReadPublicIps()
+            )
             public_ips = public_ips_response.get("PublicIps", [])
             for public_ip in public_ips:
                 resources.append({
@@ -209,7 +226,11 @@ def fetch_resources(
         
         # Fetch NAT Services
         try:
-            nat_services_response = gateway.ReadNatServices()
+            nat_services_response = process_and_log_api_call(
+                gateway=gateway,
+                api_method="ReadNatServices",
+                call_func=lambda: gateway.ReadNatServices()
+            )
             nat_services = nat_services_response.get("NatServices", [])
             for nat_service in nat_services:
                 resources.append({
@@ -232,7 +253,11 @@ def fetch_resources(
         
         # Fetch Load Balancers
         try:
-            load_balancers_response = gateway.ReadLoadBalancers()
+            load_balancers_response = process_and_log_api_call(
+                gateway=gateway,
+                api_method="ReadLoadBalancers",
+                call_func=lambda: gateway.ReadLoadBalancers()
+            )
             load_balancers = load_balancers_response.get("LoadBalancers", [])
             for lb in load_balancers:
                 resources.append({
@@ -258,7 +283,11 @@ def fetch_resources(
         
         # Fetch VPNs
         try:
-            vpns_response = gateway.ReadVpns()
+            vpns_response = process_and_log_api_call(
+                gateway=gateway,
+                api_method="ReadVpns",
+                call_func=lambda: gateway.ReadVpns()
+            )
             vpns = vpns_response.get("Vpns", [])
             for vpn in vpns:
                 resources.append({
@@ -285,7 +314,11 @@ def fetch_resources(
         # Fetch OOS buckets (only if include_oos=True, can take up to 10 minutes)
         if include_oos:
             try:
-                oos_buckets_response = gateway.ReadOosBuckets()
+                oos_buckets_response = process_and_log_api_call(
+                    gateway=gateway,
+                    api_method="ReadOosBuckets",
+                    call_func=lambda: gateway.ReadOosBuckets()
+                )
                 oos_buckets = oos_buckets_response.get("Buckets", [])
                 for bucket in oos_buckets:
                     resources.append({

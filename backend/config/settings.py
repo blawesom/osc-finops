@@ -40,6 +40,10 @@ LOG_MAX_BYTES: int = int(os.getenv("LOG_MAX_BYTES", "10485760"))  # 10MB default
 LOG_BACKUP_COUNT: int = int(os.getenv("LOG_BACKUP_COUNT", "5"))
 ERROR_LOG_FILE: str = os.getenv("ERROR_LOG_FILE", "errors.log")
 APP_LOG_FILE: str = os.getenv("APP_LOG_FILE", "app.log")
+API_CALLS_LOG_FILE: str = os.getenv("API_CALLS_LOG_FILE", "api_calls.log")
+ENABLE_API_CALL_LOGGING: bool = (
+    os.getenv("ENABLE_API_CALL_LOGGING", "1" if FLASK_ENV == "development" else "0") == "1"
+)
 
 # Database configuration
 DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///osc_finops.db")

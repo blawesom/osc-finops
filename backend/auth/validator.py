@@ -3,6 +3,7 @@ from typing import Tuple, Optional
 from osc_sdk_python import Gateway
 
 from backend.config.settings import SUPPORTED_REGIONS
+from backend.utils.api_call_logger import create_logged_gateway, process_and_log_api_call
 
 
 def validate_region(region: str) -> Tuple[bool, Optional[str]]:
@@ -38,15 +39,19 @@ def validate_credentials(access_key: str, secret_key: str, region: str) -> Tuple
         return False, region_error, None
     
     try:
-        # Create gateway with credentials
-        gateway = Gateway(
+        # Create gateway with credentials and logging enabled
+        gateway = create_logged_gateway(
             access_key=access_key,
             secret_key=secret_key,
             region=region
         )
         
         # Make ReadAccounts API call to validate credentials and get account_id
-        response = gateway.ReadAccounts()
+        response = process_and_log_api_call(
+            gateway=gateway,
+            api_method="ReadAccounts",
+            call_func=lambda: gateway.ReadAccounts()
+        )
         
         # Extract account_id from response
         account_id = None
