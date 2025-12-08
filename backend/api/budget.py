@@ -302,8 +302,8 @@ def get_budget_status_endpoint(budget_id):
         raise APIError("Invalid date format. Use YYYY-MM-DD", status_code=400)
     
     # Validate date range
-    if from_date > to_date:
-        raise APIError("from_date must be <= to_date", status_code=400)
+    if from_date >= to_date:
+        raise APIError("from_date must be < to_date (ToDate is exclusive)", status_code=400)
     
     try:
         # Get budget
