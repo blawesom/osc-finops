@@ -11,8 +11,7 @@ from backend.services.catalog_service import (
     _get_api_url,
     fetch_catalog,
     get_catalog,
-    filter_catalog_by_category,
-    get_catalog_categories
+    filter_catalog_by_category
 )
 from backend.config.settings import SUPPORTED_REGIONS, CATALOG_CACHE_TTL
 
@@ -397,80 +396,4 @@ class TestFilterCatalogByCategory:
         result = filter_catalog_by_category(catalog, "compute")
         
         assert len(result) == 1
-
-
-class TestGetCatalogCategories:
-    """Tests for get_catalog_categories function."""
-    
-    def test_get_categories_unique(self):
-        """Test get_catalog_categories returns unique categories."""
-        catalog = {
-            "entries": [
-                {"Category": "compute"},
-                {"Category": "storage"},
-                {"Category": "compute"},  # Duplicate
-                {"Category": "network"}
-            ]
-        }
-        
-        result = get_catalog_categories(catalog)
-        
-        assert len(result) == 3
-        assert "compute" in result
-        assert "storage" in result
-        assert "network" in result
-    
-    def test_get_categories_sorted(self):
-        """Test get_catalog_categories returns sorted list."""
-        catalog = {
-            "entries": [
-                {"Category": "zebra"},
-                {"Category": "alpha"},
-                {"Category": "beta"}
-            ]
-        }
-        
-        result = get_catalog_categories(catalog)
-        
-        assert result == ["alpha", "beta", "zebra"]
-    
-    def test_get_categories_empty_entries(self):
-        """Test get_catalog_categories with empty entries."""
-        catalog = {"entries": []}
-        
-        result = get_catalog_categories(catalog)
-        
-        assert result == []
-    
-    def test_get_categories_missing_category(self):
-        """Test get_catalog_categories ignores entries without Category."""
-        catalog = {
-            "entries": [
-                {"Category": "compute"},
-                {"Type": "Volume"},  # No Category
-                {"Category": "storage"}
-            ]
-        }
-        
-        result = get_catalog_categories(catalog)
-        
-        assert len(result) == 2
-        assert "compute" in result
-        assert "storage" in result
-    
-    def test_get_categories_none_category(self):
-        """Test get_catalog_categories ignores None categories."""
-        catalog = {
-            "entries": [
-                {"Category": "compute"},
-                {"Category": None},
-                {"Category": "storage"}
-            ]
-        }
-        
-        result = get_catalog_categories(catalog)
-        
-        assert len(result) == 2
-        assert "compute" in result
-        assert "storage" in result
 
