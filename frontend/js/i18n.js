@@ -158,6 +158,9 @@ const i18n = {
             'cm.budgetModal.createBtn': 'Create',
             'cm.budgetModal.updateBtn': 'Update',
             'cm.progress.estimated': 'Estimated time remaining: {time}',
+            'cm.view': 'View:',
+            'cm.viewSimple': 'Simple',
+            'cm.viewCompounded': 'Compounded',
             
             // Common
             'common.loading': 'Loading...',
@@ -322,6 +325,9 @@ const i18n = {
             'cm.budgetModal.createBtn': 'Créer',
             'cm.budgetModal.updateBtn': 'Mettre à Jour',
             'cm.progress.estimated': 'Temps restant estimé: {time}',
+            'cm.view': 'Vue:',
+            'cm.viewSimple': 'Simple',
+            'cm.viewCompounded': 'Cumulé',
             
             // Common
             'common.loading': 'Chargement...',
