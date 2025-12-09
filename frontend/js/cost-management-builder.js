@@ -17,6 +17,7 @@ const CostManagementBuilder = {
     },
     editingBudgetId: null,
     initialized: false,
+    viewMode: 'simple', // 'simple' or 'compounded'
     
     /**
      * Initialize cost management builder
@@ -44,6 +45,11 @@ const CostManagementBuilder = {
         // Load budgets
         await this.loadBudgets();
         
+        // Set initial view mode UI state (default to simple if no budget selected)
+        if (!this.selectedBudget) {
+            this.setViewMode('simple');
+        }
+        
         // Mark as initialized
         this.initialized = true;
     },
@@ -56,6 +62,45 @@ const CostManagementBuilder = {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    },
+    
+    /**
+     * Set view mode (simple or compounded) and update UI
+     * @param {string} mode - 'simple' or 'compounded'
+     */
+    setViewMode(mode) {
+        if (mode !== 'simple' && mode !== 'compounded') {
+            return;
+        }
+        
+        this.viewMode = mode;
+        
+        // Update UI toggle buttons
+        const simpleBtn = document.getElementById('cm-view-simple');
+        const compoundedBtn = document.getElementById('cm-view-compounded');
+        
+        if (simpleBtn && compoundedBtn) {
+            if (mode === 'simple') {
+                simpleBtn.classList.add('active');
+                simpleBtn.classList.remove('btn-secondary');
+                simpleBtn.classList.add('btn-primary');
+                compoundedBtn.classList.remove('active');
+                compoundedBtn.classList.remove('btn-primary');
+                compoundedBtn.classList.add('btn-secondary');
+            } else {
+                compoundedBtn.classList.add('active');
+                compoundedBtn.classList.remove('btn-secondary');
+                compoundedBtn.classList.add('btn-primary');
+                simpleBtn.classList.remove('active');
+                simpleBtn.classList.remove('btn-primary');
+                simpleBtn.classList.add('btn-secondary');
+            }
+        }
+        
+        // Re-render chart with new view mode
+        if (this.chart || (this.currentConsumptionData || this.currentTrendData)) {
+            this.renderChart();
+        }
     },
     
     /**
@@ -137,6 +182,17 @@ const CostManagementBuilder = {
         const exportJsonBtn = document.getElementById('cm-export-json');
         if (exportJsonBtn) {
             exportJsonBtn.addEventListener('click', () => this.exportData('json'));
+        }
+        
+        // View toggle buttons
+        const simpleViewBtn = document.getElementById('cm-view-simple');
+        if (simpleViewBtn) {
+            simpleViewBtn.addEventListener('click', () => this.setViewMode('simple'));
+        }
+        
+        const compoundedViewBtn = document.getElementById('cm-view-compounded');
+        if (compoundedViewBtn) {
+            compoundedViewBtn.addEventListener('click', () => this.setViewMode('compounded'));
         }
     },
     
@@ -486,7 +542,7 @@ const CostManagementBuilder = {
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-small ${isSelected ? 'btn-secondary' : 'btn-primary'}" 
-                                onclick="CostManagementBuilder.selectBudget('${budget.budget_id}')">
+                                onclick="${isSelected ? 'CostManagementBuilder.deselectBudget()' : `CostManagementBuilder.selectBudget('${budget.budget_id}')`}">
                             ${isSelected ? 'Selected' : 'Select'}
                         </button>
                         <button class="btn btn-small btn-secondary" 
@@ -507,6 +563,22 @@ const CostManagementBuilder = {
     },
     
     /**
+     * Deselect current budget
+     */
+    async deselectBudget() {
+        this.selectedBudget = null;
+        this.renderBudgetsList();
+        
+        // Set default view to simple when budget is deselected
+        this.setViewMode('simple');
+        
+        // Reload data if we have filters
+        if (this.filters.from_date && this.filters.to_date) {
+            await this.loadData();
+        }
+    },
+    
+    /**
      * Select a budget
      */
     async selectBudget(budgetId) {
@@ -517,6 +589,9 @@ const CostManagementBuilder = {
         
         this.selectedBudget = budget;
         this.renderBudgetsList();
+        
+        // Set default view to compounded when budget is selected
+        this.setViewMode('compounded');
         
         // Automatically set dates and granularity based on budget
         this.filters.from_date = budget.start_date;
@@ -688,6 +763,8 @@ const CostManagementBuilder = {
             // Clear selection if deleted budget was selected
             if (this.selectedBudget && this.selectedBudget.budget_id === budgetId) {
                 this.selectedBudget = null;
+                // Set default view to simple when budget is deselected
+                this.setViewMode('simple');
             }
             
             // Reload budgets
@@ -852,11 +929,31 @@ const CostManagementBuilder = {
             });
         }
         
+        // Calculate projected cost from last consumption value
+        const projectedCostByPeriod = {};
+        if (Object.keys(consumptionByPeriod).length > 0 && this.currentTrendData?.growth_rate !== undefined) {
+            // Determine end date for projection (use budget end_date if available, otherwise to_date)
+            let projectionEndDate = this.filters.to_date;
+            if (this.selectedBudget && this.selectedBudget.end_date) {
+                projectionEndDate = this.selectedBudget.end_date;
+            }
+            
+            const growthRate = this.currentTrendData.growth_rate || 0;
+            const projected = this.calculateProjectedCost(
+                consumptionByPeriod,
+                growthRate,
+                this.filters.granularity,
+                projectionEndDate
+            );
+            Object.assign(projectedCostByPeriod, projected);
+        }
+        
         // Get all unique labels and sort
         const allLabels = new Set();
         Object.keys(consumptionByPeriod).forEach(label => allLabels.add(label));
         Object.keys(trendByPeriod).forEach(label => allLabels.add(label));
         Object.keys(budgetByPeriod).forEach(label => allLabels.add(label));
+        Object.keys(projectedCostByPeriod).forEach(label => allLabels.add(label));
         const labels = Array.from(allLabels).sort();
         
         // Prepare datasets with aligned data
@@ -876,14 +973,14 @@ const CostManagementBuilder = {
             });
         }
         
-        // Trend dataset (only show if projection was performed)
-        if (Object.keys(trendByPeriod).length > 0 && this.currentTrendData?.projected) {
-            const trendData = labels.map(label => trendByPeriod[label] || null);
+        // Projected cost dataset (calculated from consumption, not trend)
+        if (Object.keys(projectedCostByPeriod).length > 0) {
+            const projectedData = labels.map(label => projectedCostByPeriod[label] || null);
             datasets.push({
-                label: `Trend Projection (${currency})`,
-                data: trendData,
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                label: `Projected Cost (${currency})`,
+                data: projectedData,
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
                 borderDash: [5, 5],
                 tension: 0.1,
                 fill: false,
@@ -899,10 +996,9 @@ const CostManagementBuilder = {
                 data: budgetData,
                 borderColor: 'rgb(255, 99, 132)',
                 backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                borderDash: [10, 5],
+                borderDash: [5, 5],
                 tension: 0,
                 fill: false,
-                stepped: 'before',
                 spanGaps: true
             });
         }
@@ -954,6 +1050,10 @@ const CostManagementBuilder = {
      * 
      * Note: When budget is selected, consumption should be cumulative within budget periods
      * and reset at the start of each budget period.
+     * 
+     * View modes:
+     * - Simple: non-cumulative period costs
+     * - Compounded: cumulative costs (within budget periods if budget selected, or across all periods if no budget)
      */
     aggregateConsumptionByPeriod() {
         if (!this.currentConsumptionData || !this.currentConsumptionData.entries) {
@@ -963,9 +1063,25 @@ const CostManagementBuilder = {
         const aggregated = {};
         const granularity = this.filters.granularity;
         
-        // If budget is selected, handle cumulative consumption
+        // Simple view: always non-cumulative
+        if (this.viewMode === 'simple') {
+            // Standard aggregation by granularity (non-cumulative)
+            this.currentConsumptionData.entries.forEach(entry => {
+                const periodKey = this.getPeriodKey(entry.FromDate || entry.from_date, granularity);
+                // Price is already calculated (quantity × unit_price) in pre-aggregated data
+                const cost = parseFloat(entry.Price || entry.price || 0) || 0;
+                
+                if (!aggregated[periodKey]) {
+                    aggregated[periodKey] = 0;  
+                }
+                aggregated[periodKey] += cost;
+            });
+            return aggregated;
+        }
+        
+        // Compounded view: cumulative costs
         if (this.selectedBudget && this.budgetStatus) {
-            // Use budget periods for aggregation
+            // Use budget periods for aggregation (cumulative within each budget period)
             const budgetPeriods = this.budgetStatus.periods || [];
             budgetPeriods.forEach(periodInfo => {
                 const periodKey = periodInfo.start_date;
@@ -976,16 +1092,25 @@ const CostManagementBuilder = {
                 aggregated[periodKey] = cumulativeCost;
             });
         } else {
-            // Standard aggregation by granularity
+            // No budget: cumulative across all periods
+            // First, aggregate by period (non-cumulative)
+            const periodCosts = {};
             this.currentConsumptionData.entries.forEach(entry => {
                 const periodKey = this.getPeriodKey(entry.FromDate || entry.from_date, granularity);
-                // Price is already calculated (quantity × unit_price) in pre-aggregated data
                 const cost = parseFloat(entry.Price || entry.price || 0) || 0;
                 
-                if (!aggregated[periodKey]) {
-                    aggregated[periodKey] = 0;  
+                if (!periodCosts[periodKey]) {
+                    periodCosts[periodKey] = 0;  
                 }
-                aggregated[periodKey] += cost;
+                periodCosts[periodKey] += cost;
+            });
+            
+            // Then, calculate cumulative costs
+            const sortedPeriods = Object.keys(periodCosts).sort();
+            let runningTotal = 0;
+            sortedPeriods.forEach(periodKey => {
+                runningTotal += periodCosts[periodKey];
+                aggregated[periodKey] = runningTotal;
             });
         }
         
@@ -1018,6 +1143,116 @@ const CostManagementBuilder = {
         } else { // month
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         }
+    },
+    
+    /**
+     * Get next period key after a given period key
+     * @param {string} periodKey - Current period key
+     * @param {string} granularity - Granularity ('day', 'week', 'month')
+     * @returns {string} Next period key
+     */
+    getNextPeriodKey(periodKey, granularity) {
+        if (granularity === 'day') {
+            const date = new Date(periodKey);
+            date.setDate(date.getDate() + 1);
+            return this.formatDate(date);
+        } else if (granularity === 'week') {
+            const date = new Date(periodKey);
+            const dayOfMonth = date.getDate();
+            let nextWeekStartDay;
+            if (dayOfMonth <= 7) {
+                nextWeekStartDay = 8;
+            } else if (dayOfMonth <= 14) {
+                nextWeekStartDay = 15;
+            } else if (dayOfMonth <= 21) {
+                nextWeekStartDay = 22;
+            } else {
+                // Move to first day of next month
+                date.setMonth(date.getMonth() + 1);
+                nextWeekStartDay = 1;
+            }
+            const nextWeekStart = new Date(date.getFullYear(), date.getMonth(), nextWeekStartDay);
+            return this.formatDate(nextWeekStart);
+        } else { // month
+            // Parse YYYY-MM format
+            const [year, month] = periodKey.split('-').map(Number);
+            let nextYear = year;
+            let nextMonth = month + 1;
+            if (nextMonth > 12) {
+                nextMonth = 1;
+                nextYear += 1;
+            }
+            return `${nextYear}-${String(nextMonth).padStart(2, '0')}`;
+        }
+    },
+    
+    /**
+     * Calculate projected cost periods from last consumption value
+     * Uses compounding growth rate: cost = last_cost * (1 + growth_rate/100)^periods_ahead
+     * 
+     * @param {Object} consumptionByPeriod - Object mapping period keys to consumption values
+     * @param {number} growthRate - Growth rate percentage (e.g., 5 for 5%)
+     * @param {string} granularity - Granularity ('day', 'week', 'month')
+     * @param {string} endDate - End date for projection (YYYY-MM-DD)
+     * @returns {Object} Object mapping period keys to projected cost values
+     */
+    calculateProjectedCost(consumptionByPeriod, growthRate, granularity, endDate) {
+        const projected = {};
+        
+        // Find last consumption period and value
+        const consumptionPeriods = Object.keys(consumptionByPeriod).sort();
+        if (consumptionPeriods.length === 0) {
+            return projected;
+        }
+        
+        const lastPeriodKey = consumptionPeriods[consumptionPeriods.length - 1];
+        const lastCost = consumptionByPeriod[lastPeriodKey];
+        
+        if (!lastCost || lastCost <= 0) {
+            return projected;
+        }
+        
+        // Parse end date
+        const endDateObj = new Date(endDate);
+        endDateObj.setHours(23, 59, 59, 999);
+        
+        // Generate projected periods starting from next period after last consumption
+        let currentPeriodKey = this.getNextPeriodKey(lastPeriodKey, granularity);
+        let periodAhead = 1;
+        
+        while (true) {
+            // Check if current period exceeds end date
+            let currentPeriodDate;
+            if (granularity === 'day') {
+                currentPeriodDate = new Date(currentPeriodKey);
+            } else if (granularity === 'week') {
+                currentPeriodDate = new Date(currentPeriodKey);
+            } else { // month
+                const [year, month] = currentPeriodKey.split('-').map(Number);
+                currentPeriodDate = new Date(year, month - 1, 1);
+            }
+            
+            currentPeriodDate.setHours(0, 0, 0, 0);
+            
+            if (currentPeriodDate > endDateObj) {
+                break;
+            }
+            
+            // Calculate projected cost using compounding growth
+            const projectedCost = lastCost * Math.pow(1 + growthRate / 100, periodAhead);
+            projected[currentPeriodKey] = Math.max(0, projectedCost);
+            
+            // Move to next period
+            currentPeriodKey = this.getNextPeriodKey(currentPeriodKey, granularity);
+            periodAhead += 1;
+            
+            // Safety limit to prevent infinite loops
+            if (periodAhead > 1000) {
+                break;
+            }
+        }
+        
+        return projected;
     },
     
     /**

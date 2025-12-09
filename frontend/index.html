@@ -461,7 +461,14 @@
                         
                         <!-- Unified Graph -->
                         <section class="cost-management-section">
-                            <h2 data-i18n="cm.analysis">Cost Analysis</h2>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h2 style="margin: 0;" data-i18n="cm.analysis">Cost Analysis</h2>
+                                <div class="view-toggle-group" style="display: flex; gap: 8px; align-items: center;">
+                                    <span style="margin-right: 8px; color: #666;" data-i18n="cm.view">View:</span>
+                                    <button id="cm-view-simple" class="btn btn-small btn-secondary view-toggle-btn active" data-i18n="cm.viewSimple">Simple</button>
+                                    <button id="cm-view-compounded" class="btn btn-small btn-secondary view-toggle-btn" data-i18n="cm.viewCompounded">Compounded</button>
+                                </div>
+                            </div>
                             <div style="position: relative; height: 400px;">
                                 <canvas id="cm-chart"></canvas>
                             </div>
