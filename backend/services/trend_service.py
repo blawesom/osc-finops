@@ -812,27 +812,56 @@ def project_trend_until_date(trend_data: Dict, end_date: str, budget: Optional[o
     
     # Get the last period date
     last_period = periods[-1]
-    last_date_str = last_period.get("to_date") or last_period.get("period")
+    granularity = trend_data.get("granularity", "day")
     
     try:
-        last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
+        # Get the end date of the last period to determine where to start projection
+        last_period_to_date = last_period.get("to_date")
+        if not last_period_to_date:
+            # Fallback to period field for monthly granularity
+            last_period_to_date = last_period.get("period")
+            if granularity == "month" and last_period_to_date:
+                # For monthly, "YYYY-MM" format, convert to last day of that month
+                year, month = map(int, last_period_to_date.split("-"))
+                last_day = monthrange(year, month)[1]
+                last_period_end = date(year, month, last_day)
+            else:
+                # Can't determine end date, return original data
+                return trend_data
+        else:
+            last_period_end = datetime.strptime(last_period_to_date, "%Y-%m-%d").date()
+        
         target_date = datetime.strptime(end_date, "%Y-%m-%d").date()
         
-        # If target date is before or equal to last date, return original data
-        if target_date <= last_date:
+        # Start projection from the first day of the next period after the last period
+        # Determine the start date for the next period based on granularity
+        if granularity == "day":
+            projection_start = last_period_end + timedelta(days=1)
+        elif granularity == "week":
+            projection_start = last_period_end + timedelta(days=1)
+        else:  # month
+            # Start from first day of next month
+            if last_period_end.month == 12:
+                projection_start = date(last_period_end.year + 1, 1, 1)
+            else:
+                projection_start = date(last_period_end.year, last_period_end.month + 1, 1)
+        
+        # Only project if target_date is after the last period's end date
+        # If target_date equals last_period_end, we might still want to project if the period is incomplete
+        # But for simplicity, we'll only project if target_date > last_period_end
+        if target_date <= last_period_end:
             return trend_data
         
         # Calculate growth rate per period
         growth_rate = trend_data.get("growth_rate", 0.0)
         historical_avg = trend_data.get("historical_average", 0.0)
-        granularity = trend_data.get("granularity", "day")
         
         # Get the last cost value
         last_cost = periods[-1].get("cost", historical_avg)
         
         # Generate projected periods
         projected_periods = []
-        current_date = last_date
+        current_date = projection_start
         period_num = len(periods)
         
         # Determine period delta
@@ -844,12 +873,25 @@ def project_trend_until_date(trend_data: Dict, end_date: str, budget: Optional[o
             delta = relativedelta(months=1)
         
         # Project forward
-        while current_date < target_date:
-            current_date += delta
-            
-            # Don't exceed target date
-            if current_date > target_date:
-                current_date = target_date
+        while current_date <= target_date:
+            # Calculate period end based on granularity
+            if granularity == "day":
+                period_end = current_date
+            elif granularity == "week":
+                # For weekly, calculate week end
+                period_end = current_date + timedelta(days=6)
+                # Don't exceed target date
+                if period_end > target_date:
+                    period_end = target_date
+            else:  # month
+                # For monthly, calculate last day of the month
+                if current_date.month == 12:
+                    period_end = date(current_date.year + 1, 1, 1) - timedelta(days=1)
+                else:
+                    period_end = date(current_date.year, current_date.month + 1, 1) - timedelta(days=1)
+                # Don't exceed target date
+                if period_end > target_date:
+                    period_end = target_date
             
             # Calculate projected cost based on growth rate
             # Simple linear projection: cost = last_cost * (1 + growth_rate/100)
@@ -860,11 +902,16 @@ def project_trend_until_date(trend_data: Dict, end_date: str, budget: Optional[o
             # Ensure non-negative
             projected_cost = max(0, projected_cost)
             
-            # Calculate period end (exclusive ToDate)
-            period_end = current_date + delta if current_date + delta <= target_date else target_date
+            # Format period field based on granularity
+            if granularity == "month":
+                # For monthly, use "YYYY-MM" format to match historical periods
+                period_key = current_date.strftime("%Y-%m")
+            else:
+                # For day/week, use "YYYY-MM-DD" format
+                period_key = current_date.strftime("%Y-%m-%d")
             
             projected_periods.append({
-                "period": current_date.strftime("%Y-%m-%d"),
+                "period": period_key,
                 "from_date": current_date.strftime("%Y-%m-%d"),
                 "to_date": period_end.strftime("%Y-%m-%d"),
                 "cost": round(projected_cost, 2),
@@ -873,8 +920,16 @@ def project_trend_until_date(trend_data: Dict, end_date: str, budget: Optional[o
             
             period_num += 1
             
-            # Stop if we've reached target date
-            if current_date >= target_date:
+            # Move to next period
+            if granularity == "day":
+                current_date += delta
+            elif granularity == "week":
+                current_date += delta
+            else:  # month
+                current_date += delta
+            
+            # Stop if we've reached or exceeded target date
+            if current_date > target_date:
                 break
         
         # Align projected periods to budget boundaries if budget is provided
