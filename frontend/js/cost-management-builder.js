@@ -59,6 +59,60 @@ const CostManagementBuilder = {
     },
     
     /**
+     * Get granularity from budget period type
+     * Maps budget period_type to appropriate granularity:
+     * - monthly → week
+     * - quarterly → month
+     * - yearly → month
+     * 
+     * @param {string} periodType - Budget period type ('monthly', 'quarterly', 'yearly')
+     * @returns {string} Granularity ('day', 'week', 'month')
+     */
+    getGranularityFromBudgetPeriodType(periodType) {
+        if (periodType === 'monthly') {
+            return 'week';
+        } else if (periodType === 'quarterly' || periodType === 'yearly') {
+            return 'month';
+        }
+        // Default fallback
+        return 'day';
+    },
+    
+    /**
+     * Calculate default to_date when budget has no end_date
+     * Calculates based on period_type and caps at today's date if in the future
+     * 
+     * @param {string} startDate - Budget start date (YYYY-MM-DD)
+     * @param {string} periodType - Budget period type ('monthly', 'quarterly', 'yearly')
+     * @returns {string} Calculated to_date (YYYY-MM-DD)
+     */
+    calculateDefaultToDate(startDate, periodType) {
+        const start = new Date(startDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        let calculatedDate = new Date(start);
+        
+        if (periodType === 'monthly') {
+            calculatedDate.setMonth(calculatedDate.getMonth() + 1);
+        } else if (periodType === 'quarterly') {
+            calculatedDate.setMonth(calculatedDate.getMonth() + 3);
+        } else if (periodType === 'yearly') {
+            calculatedDate.setFullYear(calculatedDate.getFullYear() + 1);
+        } else {
+            // Default: add 1 month
+            calculatedDate.setMonth(calculatedDate.getMonth() + 1);
+        }
+        
+        // Cap at today's date if calculated date is in the future
+        if (calculatedDate > today) {
+            calculatedDate = today;
+        }
+        
+        return this.formatDate(calculatedDate);
+    },
+    
+    /**
      * Setup event listeners
      */
     setupEventListeners() {
@@ -464,10 +518,24 @@ const CostManagementBuilder = {
         this.selectedBudget = budget;
         this.renderBudgetsList();
         
-        // Reload data if we already have filters set
-        if (this.filters.from_date && this.filters.to_date) {
-            await this.loadData();
+        // Automatically set dates and granularity based on budget
+        this.filters.from_date = budget.start_date;
+        
+        // Set to_date: use budget's end_date if available, otherwise calculate default
+        if (budget.end_date) {
+            this.filters.to_date = budget.end_date;
+        } else {
+            this.filters.to_date = this.calculateDefaultToDate(budget.start_date, budget.period_type);
         }
+        
+        // Set granularity based on budget period type
+        this.filters.granularity = this.getGranularityFromBudgetPeriodType(budget.period_type);
+        
+        // Update UI fields
+        this.updateFilterUI();
+        
+        // Refresh data with new filters
+        await this.loadData();
     },
     
     /**
@@ -663,7 +731,8 @@ const CostManagementBuilder = {
         let totalRemaining = 0;
         if (this.budgetStatus) {
             totalBudget = this.budgetStatus.total_budget || 0;
-            totalRemaining = this.budgetStatus.total_remaining || 0;
+            totalRemaining = totalBudget - totalConsumption || 0;
+            // totalRemaining = this.budgetStatus.total_remaining || 0;
         }
         
         // Get trend direction
@@ -733,9 +802,53 @@ const CostManagementBuilder = {
         }
         
         // Collect budget data
+        // Map budget periods to trend period keys and distribute across all periods within budget period
         if (this.budgetStatus && this.budgetStatus.periods) {
-            this.budgetStatus.periods.forEach(p => {
-                budgetByPeriod[p.start_date] = p.budget_amount;
+            this.budgetStatus.periods.forEach(budgetPeriod => {
+                const budgetStart = new Date(budgetPeriod.start_date);
+                const budgetEnd = new Date(budgetPeriod.end_date);
+                const budgetAmount = budgetPeriod.budget_amount;
+                
+                // For yearly/quarterly budgets, distribute budget across all trend periods within the budget period
+                // For monthly budgets, map directly to the period
+                if (this.selectedBudget && (this.selectedBudget.period_type === 'yearly' || this.selectedBudget.period_type === 'quarterly')) {
+                    // Distribute budget across all trend periods within this budget period
+                    if (this.currentTrendData && this.currentTrendData.periods) {
+                        this.currentTrendData.periods.forEach(trendPeriod => {
+                            // Get the period date - use from_date if available, otherwise parse period field
+                            let trendPeriodDate;
+                            if (trendPeriod.from_date) {
+                                trendPeriodDate = new Date(trendPeriod.from_date);
+                            } else if (trendPeriod.period) {
+                                // For monthly, period is "YYYY-MM", convert to first day of month
+                                if (this.filters.granularity === 'month' && trendPeriod.period.match(/^\d{4}-\d{2}$/)) {
+                                    const [year, month] = trendPeriod.period.split('-').map(Number);
+                                    trendPeriodDate = new Date(year, month - 1, 1);
+                                } else {
+                                    trendPeriodDate = new Date(trendPeriod.period);
+                                }
+                            } else {
+                                return; // Skip if we can't determine the date
+                            }
+                            
+                            // Check if trend period falls within budget period
+                            // Compare dates (set time to 0 for accurate comparison)
+                            budgetStart.setHours(0, 0, 0, 0);
+                            budgetEnd.setHours(23, 59, 59, 999);
+                            trendPeriodDate.setHours(0, 0, 0, 0);
+                            
+                            if (trendPeriodDate >= budgetStart && trendPeriodDate <= budgetEnd) {
+                                // Use the trend period's period key to match with trend data
+                                const periodKey = trendPeriod.period;
+                                budgetByPeriod[periodKey] = budgetAmount;
+                            }
+                        });
+                    }
+                } else {
+                    // For monthly budgets, map directly using period key format
+                    const periodKey = this.getPeriodKey(budgetPeriod.start_date, this.filters.granularity);
+                    budgetByPeriod[periodKey] = budgetAmount;
+                }
             });
         }
         
