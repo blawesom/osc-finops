@@ -2,18 +2,14 @@
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta, date
 from dateutil.relativedelta import relativedelta
-from calendar import monthrange
 
 from backend.database import SessionLocal
 from backend.models.budget import Budget
 from backend.models.user import User
 from backend.services.consumption_service import (
-    get_consumption, 
-    aggregate_by_granularity,
+    get_consumption,
     round_to_period_start,
     round_to_period_end,
-    get_consumption_granularity_from_budget,
-    calculate_monthly_weeks,
     split_periods_at_budget_boundaries
 )
 from backend.utils.error_logger import log_exception
@@ -450,80 +446,51 @@ def calculate_budget_status(
             "total_remaining": 0.0
         }
     
-    # Determine consumption granularity (one level under budget)
-    consumption_granularity = get_consumption_granularity_from_budget(budget.period_type)
-    
-    # Get consumption data with appropriate granularity
-    # For monthly budgets, we need to handle special weekly calculation
-    consumption_periods = []
-    
-    if budget.period_type == 'monthly' and consumption_granularity == 'week':
-        # Special case: monthly weeks (start on 1st, 4th week extends to month end)
-        for period in periods:
-            period_start = datetime.strptime(period["start_date"], "%Y-%m-%d").date()
-            period_end = datetime.strptime(period["end_date"], "%Y-%m-%d").date()
-            
-            # Generate monthly weeks for this budget period
-            current_date = period_start
-            while current_date <= period_end:
-                year = current_date.year
-                month = current_date.month
-                weeks = calculate_monthly_weeks(year, month)
-                
-                for week in weeks:
-                    week_start = datetime.strptime(week["from_date"], "%Y-%m-%d").date()
-                    week_end = datetime.strptime(week["to_date"], "%Y-%m-%d").date() - timedelta(days=1)  # Convert to inclusive
-                    
-                    # Only include weeks within this budget period
-                    if week_start >= period_start and week_end <= period_end:
-                        consumption_periods.append({
-                            "from_date": week["from_date"],
-                            "to_date": week_end.isoformat(),  # Inclusive end date
-                            "budget_period": period["period"]
-                        })
-                
-                # Move to next month
-                if current_date.month == 12:
-                    current_date = current_date.replace(year=current_date.year + 1, month=1, day=1)
-                else:
-                    current_date = current_date.replace(month=current_date.month + 1, day=1)
-    else:
-        # For other granularities, generate periods normally
-        # This would need to be implemented based on consumption_granularity
-        # For now, we'll query consumption for each budget period
-        for period in periods:
-            consumption_periods.append({
-                "from_date": period["start_date"],
-                "to_date": period["end_date"],
-                "budget_period": period["period"]
-            })
-    
-    # Fetch consumption data for each consumption period
-    all_consumption_entries = []
+    # Fetch consumption data for each budget period (query once per period)
+    # Track consumption per budget period
+    consumption_by_budget_period = {}  # period_num -> total cost
     currency = "EUR"
+    today = datetime.utcnow().date()
+    yesterday = today - timedelta(days=1)
     
-    for cons_period in consumption_periods:
+    for period in periods:
+        period_start = datetime.strptime(period["start_date"], "%Y-%m-%d").date()
+        period_end = datetime.strptime(period["end_date"], "%Y-%m-%d").date()
+        period_num = period["period"]
+        
+        # Cap period_end to yesterday (consumption data is only available up to yesterday)
+        query_end = min(period_end, yesterday)
+        
+        # Skip if query period is invalid (start after end)
+        if period_start > query_end:
+            continue
+        
         try:
-            # Note: ToDate is exclusive, so we need to add 1 day
-            period_to_exclusive = (datetime.strptime(cons_period["to_date"], "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+            # Query consumption for the entire past budget period
+            query_to_date_exclusive = query_end.isoformat()
             
             consumption_data = get_consumption(
                 access_key=access_key,
                 secret_key=secret_key,
                 region=region,
                 account_id=account_id,
-                        from_date=cons_period["from_date"],
-                        to_date=period_to_exclusive,  # Exclusive ToDate
+                from_date=period_start.isoformat(),
+                to_date=query_to_date_exclusive,  # Exclusive ToDate for API
                 force_refresh=force_refresh
-                )
+            )
             
             if currency == "EUR" and consumption_data.get("currency"):
                 currency = consumption_data.get("currency", "EUR")
-                
-                # Add budget period info to entries
-                for entry in consumption_data.get("entries", []):
-                    entry["budget_period"] = cons_period["budget_period"]
-                    all_consumption_entries.append(entry)
+            
+            # Sum all entry costs for this budget period
+            # Entries are already aggregated for the queried period, so we sum directly
+            period_cost = sum(
+                float(entry.get("Price", 0) or 0) 
+                for entry in consumption_data.get("entries", [])
+            )
+            
+            consumption_by_budget_period[period_num] = period_cost
+            
         except Exception as e:
             continue
         
@@ -538,31 +505,8 @@ def calculate_budget_status(
         budget_amount = period["budget_amount"]
         period_num = period["period"]
         
-        # Get consumption entries for this budget period
-        period_entries = [
-            entry for entry in all_consumption_entries
-            if entry.get("budget_period") == period_num
-        ]
-        
-        # Calculate cumulative consumption (progressive within period, reset at start)
-        cumulative_spent = 0.0
-        consumption_by_subperiod = {}
-        
-        # Group by consumption sub-period and calculate cumulative
-        for entry in period_entries:
-            entry_date = entry.get("FromDate", "")
-            if len(entry_date) >= 10:
-                entry_date_obj = datetime.strptime(entry_date[:10], "%Y-%m-%d").date()
-                # Use date as key for sub-period
-                subperiod_key = entry_date_obj.isoformat()
-                
-                if subperiod_key not in consumption_by_subperiod:
-                    consumption_by_subperiod[subperiod_key] = 0.0
-                
-                consumption_by_subperiod[subperiod_key] += float(entry.get("Price", 0) or 0)
-        
-        # Calculate cumulative (progressive accumulation within budget period)
-        cumulative_spent = sum(consumption_by_subperiod.values())
+        # Get consumption for this budget period
+        cumulative_spent = consumption_by_budget_period.get(period_num, 0.0)
         
         remaining = budget_amount - cumulative_spent
         
