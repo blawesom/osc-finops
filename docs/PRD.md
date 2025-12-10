@@ -335,12 +335,14 @@ Enable users to analyze cost trends over time and compare estimated costs with a
 - [x] Date range iteration correctly handles day/week/month boundaries
 - [x] **to_date validation**: Must be in the past by at least 1 granularity period
 - [x] **from_date in past**: Do not show projected trend
-- [x] **from_date in future**: Query consumption until last period excluding today, then project trend from last period to to_date
+- [x] **from_date in future**: Query consumption until last period excluding today, then project trend by repeating last queriable period's costs
+- [x] **Simplified projection**: Projected periods repeat the last queriable period's cost (growth rate still calculated for user information)
 - [x] **Period boundary alignment**: When budget is provided, trend periods align with budget period boundaries (no crossing)
 
 #### Technical Requirements
 - Trend calculation algorithms
 - Cost drift calculation logic (matching osc-cost)
+- Simple projection: repeat last queriable period costs (growth rate still calculated for display)
 - Chart visualization (Chart.js or similar)
 - Historical data processing
 - Export functionality
@@ -375,7 +377,7 @@ The unified view displays:
 - [x] System tracks budget vs. actual spending per period
 - [x] System displays budget utilization and remaining budget per period
 - [x] System shows consumption data for available historical periods
-- [x] System projects consumption trends until the end of the selected budget period
+- [x] System projects consumption by repeating last queriable period costs until the end of the selected budget period
 - [x] Unified graph displays consumption line, budget line, and trend projection line
 - [x] System shows period details table with consumption, budget, remaining, and utilization
 - [x] Users can select a budget to analyze against consumption and trends

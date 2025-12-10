@@ -94,7 +94,7 @@ OSC-FinOps is a comprehensive FinOps service designed for Outscale customers, pr
     granularity selection from budget, period boundary alignment, monthly weeks calculation
   - **trend_service**: Async trend calculation with progress tracking, 
     date validation (to_date must be in past), projection rules based on from_date position,
-    accurate cost calculation (UnitPrice × Value), trend projection with budget boundary alignment
+    accurate cost calculation (UnitPrice × Value), simplified trend projection (repeating last period costs) with budget boundary alignment
   - **budget_service**: Budget CRUD operations, period calculation, 
     budget status calculation (spent vs. budget per period), date rounding (from_date down, to_date up),
     cumulative consumption calculation, granularity selection, period boundary validation
@@ -215,7 +215,7 @@ User → Frontend (Cost Management Module)
     → If from_date in future: Query consumption until last period excluding today, then project
     → If budget provided: Align periods to budget boundaries
     → Calculate trends (growth rate, historical average, period changes)
-    → Project trend if needed (respecting budget boundaries)
+    → Project trend by repeating last queriable period costs (respecting budget boundaries)
     → Update job progress during processing
     → Store result in job queue
   → Frontend polls GET /api/trends/jobs/<job_id> for status
@@ -227,6 +227,7 @@ User → Frontend (Cost Management Module)
 - to_date must be in past by at least 1 granularity period
 - If from_date in past: no projected trend shown
 - If from_date in future: query until last period excluding today, then project
+- Projection simplified: repeats last queriable period's costs (growth rate still calculated for user information)
 - Periods align with budget boundaries when budget is provided
 
 ### 3.5 Budget Status Flow
