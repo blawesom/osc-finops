@@ -683,3 +683,79 @@ class TestSplitPeriodsAtBudgetBoundaries:
         result = split_periods_at_budget_boundaries(periods, None)
         assert result == periods
 
+
+
+class TestConsumptionServiceWithFixtures:
+    """Tests for consumption service using fixture data."""
+    
+    def test_get_consumption_with_fixture_data(self, formatted_consumption_data):
+        """Test get_consumption using fixture data."""
+        if not formatted_consumption_data:
+            pytest.skip("Consumption fixture not available")
+        
+        with patch('backend.services.consumption_service.consumption_cache') as mock_cache:
+            mock_cache.get.return_value = None  # Cache miss
+            with patch('backend.services.consumption_service.fetch_consumption') as mock_fetch:
+                mock_fetch.return_value = formatted_consumption_data
+                
+                result = get_consumption(
+                    "access_key",
+                    "secret_key",
+                    "eu-west-2",
+                    "account-123",
+                    "2025-12-01",
+                    "2025-12-02",
+                    granularity="day"
+                )
+                
+                assert result is not None
+                assert "entries" in result
+                assert len(result["entries"]) > 0
+    
+    def test_consumption_fixture_structure(self, consumption_fixture_data):
+        """Test that consumption fixture has expected structure."""
+        if not consumption_fixture_data:
+            pytest.skip("Consumption fixture not available")
+        
+        assert "ConsumptionEntries" in consumption_fixture_data
+        entries = consumption_fixture_data["ConsumptionEntries"]
+        assert len(entries) > 0
+        
+        # Verify entry structure
+        first_entry = entries[0]
+        assert "Type" in first_entry
+        assert "Value" in first_entry
+        assert "FromDate" in first_entry
+        assert "ToDate" in first_entry
+        assert "AccountId" in first_entry
+    
+    def test_aggregate_consumption_with_fixture(self, formatted_consumption_data):
+        """Test aggregating consumption data from fixture."""
+        if not formatted_consumption_data:
+            pytest.skip("Consumption fixture not available")
+        
+        # Aggregate by resource type
+        aggregated = aggregate_by_dimension(
+            formatted_consumption_data["entries"],
+            "resource_type"
+        )
+        
+        assert len(aggregated) > 0
+        # Each aggregated entry should have a resource_type
+        for entry in aggregated:
+            assert "resource_type" in entry or "Type" in entry
+    
+    def test_filter_consumption_with_fixture(self, formatted_consumption_data):
+        """Test filtering consumption data from fixture."""
+        if not formatted_consumption_data:
+            pytest.skip("Consumption fixture not available")
+        
+        # Filter by service
+        filtered = filter_consumption(
+            formatted_consumption_data["entries"],
+            service="TinaOS-FCU"
+        )
+        
+        # All entries should match the filter
+        for entry in filtered:
+            assert entry.get("Service", "") == "TinaOS-FCU"

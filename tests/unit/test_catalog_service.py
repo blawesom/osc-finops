@@ -397,3 +397,70 @@ class TestFilterCatalogByCategory:
         
         assert len(result) == 1
 
+
+
+class TestCatalogServiceWithFixtures:
+    """Tests for catalog service using fixture data."""
+    
+    def test_get_catalog_with_fixture_data(self, formatted_catalog_data):
+        """Test get_catalog using fixture data."""
+        if not formatted_catalog_data:
+            pytest.skip("Catalog fixture not available")
+        
+        with patch('backend.services.catalog_service.catalog_cache') as mock_cache:
+            mock_cache.get.return_value = None  # Cache miss
+            with patch('backend.services.catalog_service.fetch_catalog') as mock_fetch:
+                mock_fetch.return_value = formatted_catalog_data
+                
+                result = get_catalog("eu-west-2", force_refresh=False)
+                
+                assert result is not None
+                assert "entries" in result
+                assert len(result["entries"]) > 0
+                assert result["currency"] == "EUR"
+    
+    def test_filter_catalog_by_category_with_fixture(self, formatted_catalog_data):
+        """Test filtering catalog by category using fixture data."""
+        if not formatted_catalog_data:
+            pytest.skip("Catalog fixture not available")
+        
+        # Filter for compute category (returns list, not dict)
+        filtered = filter_catalog_by_category(formatted_catalog_data, "compute")
+        
+        assert isinstance(filtered, list)
+        # All entries should be compute category
+        for entry in filtered:
+            assert entry.get("Category", "").lower() == "compute"
+    
+    def test_catalog_fixture_structure(self, catalog_fixture_data):
+        """Test that catalog fixture has expected structure."""
+        if not catalog_fixture_data:
+            pytest.skip("Catalog fixture not available")
+        
+        assert "Catalog" in catalog_fixture_data
+        assert "Entries" in catalog_fixture_data["Catalog"]
+        entries = catalog_fixture_data["Catalog"]["Entries"]
+        assert len(entries) > 0
+        
+        # Verify entry structure
+        first_entry = entries[0]
+        assert "UnitPrice" in first_entry
+        assert "Type" in first_entry
+        assert "Service" in first_entry
+        assert "Operation" in first_entry
+        assert "Category" in first_entry
+    
+    def test_catalog_fixture_has_multiple_categories(self, formatted_catalog_data):
+        """Test that catalog fixture contains multiple resource categories."""
+        if not formatted_catalog_data:
+            pytest.skip("Catalog fixture not available")
+        
+        categories = set()
+        for entry in formatted_catalog_data["entries"]:
+            category = entry.get("Category", "").lower()
+            if category:
+                categories.add(category)
+        
+        # Should have multiple categories
+        assert len(categories) > 1
+        assert "compute" in categories or "storage" in categories or "network" in categories

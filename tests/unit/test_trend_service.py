@@ -1018,3 +1018,49 @@ class TestCalculateTrendsAsync:
         # Periods should have 0 cost due to errors
         assert all(p["cost"] == 0.0 for p in result["periods"])
 
+
+
+class TestTrendServiceEdgeCases:
+    """Edge case tests for trend service."""
+    
+    def test_trend_job_with_large_date_range(self):
+        """Test trend job with large date range."""
+        from backend.services.trend_service import create_trend_job
+        
+        # Test with 1 year range
+        job = create_trend_job(
+            user_id="user-123",
+            from_date="2024-01-01",
+            to_date="2024-12-31",
+            granularity="month"
+        )
+        
+        assert job is not None
+        assert job["granularity"] == "month"
+    
+    def test_trend_job_with_single_day(self):
+        """Test trend job with single day range."""
+        from backend.services.trend_service import create_trend_job
+        
+        job = create_trend_job(
+            user_id="user-123",
+            from_date="2024-01-01",
+            to_date="2024-01-01",
+            granularity="day"
+        )
+        
+        assert job is not None
+        assert job["granularity"] == "day"
+    
+    def test_trend_job_handles_missing_optional_params(self):
+        """Test trend job creation with missing optional parameters."""
+        from backend.services.trend_service import create_trend_job
+        
+        job = create_trend_job(
+            user_id="user-123",
+            from_date="2024-01-01",
+            to_date="2024-01-31"
+        )
+        
+        assert job is not None
+        # Should use defaults for optional params

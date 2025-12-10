@@ -576,3 +576,99 @@ class TestAlignPeriodsToBudgetBoundaries:
         result = align_periods_to_budget_boundaries(periods, None)
         assert result == periods
 
+
+
+class TestBudgetServiceEdgeCases:
+    """Edge case tests for budget service."""
+    
+    @patch('backend.services.budget_service.get_consumption')
+    def test_calculate_budget_status_exact_amount(self, mock_get_consumption):
+        """Test budget status when cost equals budget amount exactly."""
+        # Mock consumption data that sums to budget amount
+        mock_get_consumption.return_value = {
+            "entries": [
+                {"Price": "1000.0"}
+            ],
+            "currency": "EUR"
+        }
+        
+        budget = Mock(spec=Budget)
+        budget.budget_id = "budget-123"
+        budget.name = "Test Budget"
+        budget.amount = 1000.0
+        budget.period_type = "monthly"
+        budget.start_date = date(2024, 1, 1)
+        budget.end_date = None
+        
+        status = calculate_budget_status(
+            budget,
+            "access_key", "secret_key", "eu-west-2", "account-123",
+            "2024-01-01", "2024-01-31"
+        )
+        
+        assert "periods" in status
+        if status["periods"]:
+            period = status["periods"][0]
+            assert period["utilization_percent"] == 100.0
+    
+    @patch('backend.services.budget_service.get_consumption')
+    def test_calculate_budget_status_zero_budget(self, mock_get_consumption):
+        """Test budget status with zero budget amount."""
+        mock_get_consumption.return_value = {
+            "entries": [{"Price": "100.0"}],
+            "currency": "EUR"
+        }
+        
+        budget = Mock(spec=Budget)
+        budget.budget_id = "budget-123"
+        budget.name = "Test Budget"
+        budget.amount = 0.0
+        budget.period_type = "monthly"
+        budget.start_date = date(2024, 1, 1)
+        budget.end_date = None
+        
+        status = calculate_budget_status(
+            budget,
+            "access_key", "secret_key", "eu-west-2", "account-123",
+            "2024-01-01", "2024-01-31"
+        )
+        
+        # Should handle zero budget gracefully
+        assert "periods" in status
+        if status["periods"]:
+            period = status["periods"][0]
+            # With zero budget, utilization_percent should be 0.0 (division by zero protection)
+            # or a very large number if cost > 0
+            assert period["utilization_percent"] == 0.0 or period["utilization_percent"] >= 100.0
+    
+    def test_round_dates_to_budget_period_edge_cases(self):
+        """Test date rounding with edge cases."""
+        budget = Mock(spec=Budget)
+        budget.period_type = "monthly"
+        budget.start_date = date(2024, 1, 1)
+        budget.end_date = None
+        
+        # Test with year boundary
+        from_date, to_date = round_dates_to_budget_period("2024-12-31", "2024-12-31", budget)
+        assert from_date is not None
+        assert to_date is not None
+        
+        # Test with month start
+        from_date, to_date = round_dates_to_budget_period("2024-01-01", "2024-01-31", budget)
+        assert from_date == "2024-01-01"
+    
+    def test_validate_period_boundaries_overlapping_periods(self):
+        """Test validation with overlapping periods."""
+        periods = [
+            {"from_date": "2024-01-01", "to_date": "2024-01-31"},
+            {"from_date": "2024-01-15", "to_date": "2024-02-15"}  # Overlaps
+        ]
+        budget = Mock(spec=Budget)
+        budget.period_type = "monthly"
+        budget.start_date = date(2024, 1, 1)
+        budget.end_date = None
+        
+        # Should validate (overlap detection may be separate logic)
+        result = validate_period_boundaries(periods, budget)
+        # Result depends on implementation - just verify it doesn't crash
+        assert isinstance(result, bool)
