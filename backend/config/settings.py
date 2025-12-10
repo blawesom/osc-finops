@@ -24,7 +24,7 @@ SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 
 # Server configuration
 SERVER_HOST: str = os.getenv("SERVER_HOST", "0.0.0.0")
-SERVER_PORT: int = int(os.getenv("SERVER_PORT", "5000"))
+SERVER_PORT: int = int(os.getenv("SERVER_PORT", "8000"))
 
 # CORS configuration
 CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS", "*").split(",")
