@@ -62,13 +62,14 @@ class TestValidateRegion:
 class TestValidateCredentials:
     """Tests for validate_credentials function."""
     
-    @patch('backend.auth.validator.Gateway')
-    def test_valid_credentials(self, mock_gateway_class):
+    @patch('backend.auth.validator.process_and_log_api_call')
+    @patch('backend.auth.validator.create_logged_gateway')
+    def test_valid_credentials(self, mock_create_gateway, mock_process_call):
         """Test with valid credentials."""
         # Setup mock
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadAccounts.return_value = {
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_call.return_value = {
             'Accounts': [{'AccountId': '123456789012'}]
         }
         
@@ -81,12 +82,12 @@ class TestValidateCredentials:
         assert is_valid is True
         assert error is None
         assert account_id == "123456789012"
-        mock_gateway_class.assert_called_once_with(
+        mock_create_gateway.assert_called_once_with(
             access_key="access_key",
             secret_key="secret_key",
             region="eu-west-2"
         )
-        mock_gateway.ReadAccounts.assert_called_once()
+        mock_process_call.assert_called_once()
     
     def test_missing_access_key(self):
         """Test with missing access key."""
@@ -136,12 +137,13 @@ class TestValidateCredentials:
         assert "Invalid region" in error
         assert account_id is None
     
-    @patch('backend.auth.validator.Gateway')
-    def test_invalid_credentials_invalid_access_key(self, mock_gateway_class):
+    @patch('backend.auth.validator.process_and_log_api_call')
+    @patch('backend.auth.validator.create_logged_gateway')
+    def test_invalid_credentials_invalid_access_key(self, mock_create_gateway, mock_process_call):
         """Test with invalid access key."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadAccounts.side_effect = Exception("InvalidAccessKeyId")
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_call.side_effect = Exception("InvalidAccessKeyId")
         
         is_valid, error, account_id = validate_credentials(
             "invalid_key",
@@ -153,12 +155,13 @@ class TestValidateCredentials:
         assert "Invalid credentials" in error
         assert account_id is None
     
-    @patch('backend.auth.validator.Gateway')
-    def test_invalid_credentials_signature_mismatch(self, mock_gateway_class):
+    @patch('backend.auth.validator.process_and_log_api_call')
+    @patch('backend.auth.validator.create_logged_gateway')
+    def test_invalid_credentials_signature_mismatch(self, mock_create_gateway, mock_process_call):
         """Test with signature mismatch."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadAccounts.side_effect = Exception("SignatureDoesNotMatch")
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_call.side_effect = Exception("SignatureDoesNotMatch")
         
         is_valid, error, account_id = validate_credentials(
             "access_key",
@@ -170,12 +173,13 @@ class TestValidateCredentials:
         assert "Invalid credentials" in error
         assert account_id is None
     
-    @patch('backend.auth.validator.Gateway')
-    def test_rate_limit_exceeded(self, mock_gateway_class):
+    @patch('backend.auth.validator.process_and_log_api_call')
+    @patch('backend.auth.validator.create_logged_gateway')
+    def test_rate_limit_exceeded(self, mock_create_gateway, mock_process_call):
         """Test with rate limit exceeded."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadAccounts.side_effect = Exception("RequestLimitExceeded")
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_call.side_effect = Exception("RequestLimitExceeded")
         
         is_valid, error, account_id = validate_credentials(
             "access_key",
@@ -187,12 +191,13 @@ class TestValidateCredentials:
         assert "API rate limit exceeded" in error
         assert account_id is None
     
-    @patch('backend.auth.validator.Gateway')
-    def test_generic_exception(self, mock_gateway_class):
+    @patch('backend.auth.validator.process_and_log_api_call')
+    @patch('backend.auth.validator.create_logged_gateway')
+    def test_generic_exception(self, mock_create_gateway, mock_process_call):
         """Test with generic exception."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadAccounts.side_effect = Exception("Network error")
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_call.side_effect = Exception("Network error")
         
         is_valid, error, account_id = validate_credentials(
             "access_key",
@@ -204,12 +209,13 @@ class TestValidateCredentials:
         assert "Authentication failed" in error
         assert account_id is None
     
-    @patch('backend.auth.validator.Gateway')
-    def test_empty_accounts_response(self, mock_gateway_class):
+    @patch('backend.auth.validator.process_and_log_api_call')
+    @patch('backend.auth.validator.create_logged_gateway')
+    def test_empty_accounts_response(self, mock_create_gateway, mock_process_call):
         """Test with empty accounts in response."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadAccounts.return_value = {'Accounts': []}
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_call.return_value = {'Accounts': []}
         
         is_valid, error, account_id = validate_credentials(
             "access_key",
@@ -221,12 +227,13 @@ class TestValidateCredentials:
         assert "Could not retrieve account information" in error
         assert account_id is None
     
-    @patch('backend.auth.validator.Gateway')
-    def test_no_accounts_key_in_response(self, mock_gateway_class):
+    @patch('backend.auth.validator.process_and_log_api_call')
+    @patch('backend.auth.validator.create_logged_gateway')
+    def test_no_accounts_key_in_response(self, mock_create_gateway, mock_process_call):
         """Test with response missing Accounts key."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadAccounts.return_value = {}
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_call.return_value = {}
         
         is_valid, error, account_id = validate_credentials(
             "access_key",
@@ -238,12 +245,13 @@ class TestValidateCredentials:
         assert "Could not retrieve account information" in error
         assert account_id is None
     
-    @patch('backend.auth.validator.Gateway')
-    def test_account_without_account_id(self, mock_gateway_class):
+    @patch('backend.auth.validator.process_and_log_api_call')
+    @patch('backend.auth.validator.create_logged_gateway')
+    def test_account_without_account_id(self, mock_create_gateway, mock_process_call):
         """Test with account missing AccountId."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadAccounts.return_value = {
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_call.return_value = {
             'Accounts': [{'SomeOtherField': 'value'}]
         }
         
@@ -257,12 +265,13 @@ class TestValidateCredentials:
         assert "Could not retrieve account information" in error
         assert account_id is None
     
-    @patch('backend.auth.validator.Gateway')
-    def test_none_response(self, mock_gateway_class):
+    @patch('backend.auth.validator.process_and_log_api_call')
+    @patch('backend.auth.validator.create_logged_gateway')
+    def test_none_response(self, mock_create_gateway, mock_process_call):
         """Test with None response."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadAccounts.return_value = None
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_call.return_value = None
         
         is_valid, error, account_id = validate_credentials(
             "access_key",
@@ -274,12 +283,13 @@ class TestValidateCredentials:
         assert "Could not retrieve account information" in error
         assert account_id is None
     
-    @patch('backend.auth.validator.Gateway')
-    def test_multiple_accounts_uses_first(self, mock_gateway_class):
+    @patch('backend.auth.validator.process_and_log_api_call')
+    @patch('backend.auth.validator.create_logged_gateway')
+    def test_multiple_accounts_uses_first(self, mock_create_gateway, mock_process_call):
         """Test with multiple accounts uses first one."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadAccounts.return_value = {
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_call.return_value = {
             'Accounts': [
                 {'AccountId': '111111111111'},
                 {'AccountId': '222222222222'}
@@ -295,12 +305,13 @@ class TestValidateCredentials:
         assert is_valid is True
         assert account_id == "111111111111"
     
-    @patch('backend.auth.validator.Gateway')
-    def test_all_supported_regions(self, mock_gateway_class):
+    @patch('backend.auth.validator.process_and_log_api_call')
+    @patch('backend.auth.validator.create_logged_gateway')
+    def test_all_supported_regions(self, mock_create_gateway, mock_process_call):
         """Test credential validation with all supported regions."""
         mock_gateway = Mock()
-        mock_gateway_class.return_value = mock_gateway
-        mock_gateway.ReadAccounts.return_value = {
+        mock_create_gateway.return_value = mock_gateway
+        mock_process_call.return_value = {
             'Accounts': [{'AccountId': '123456789012'}]
         }
         
@@ -312,6 +323,7 @@ class TestValidateCredentials:
             )
             assert is_valid is True
             assert account_id == "123456789012"
-            # Verify Gateway was called with correct region
-            assert mock_gateway_class.call_args[1]['region'] == region
+            # Verify create_logged_gateway was called with correct region
+            call_args = mock_create_gateway.call_args
+            assert call_args[1]['region'] == region
 

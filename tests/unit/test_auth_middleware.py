@@ -163,4 +163,63 @@ class TestRequireAuth:
                     response = client.get('/test', headers={"X-Session-ID": "valid-session-123"})
                     
                     assert response.status_code == 200
+    
+    def test_require_auth_prefers_header_over_query_param(self):
+        """Test that require_auth prefers header session_id over query param."""
+        app = Flask(__name__)
+        
+        @app.route('/test')
+        @require_auth
+        def test_route():
+            return {"session_id": request.session.session_id}
+        
+        mock_session = Mock()
+        mock_session.session_id = "header-session"
+        mock_session.region = "eu-west-2"
+        
+        with patch('backend.middleware.auth_middleware.session_manager') as mock_manager:
+            mock_manager.get_session.return_value = mock_session
+            
+            with patch('backend.database.SessionLocal') as mock_db_class:
+                mock_db = Mock()
+                mock_db_class.return_value = mock_db
+                mock_db.query.return_value.filter.return_value.first.return_value = None
+                
+                with app.test_client() as client:
+                    response = client.get(
+                        '/test?session_id=query-session',
+                        headers={"X-Session-ID": "header-session"}
+                    )
+                    
+                    assert response.status_code == 200
+                    data = response.get_json()
+                    # Should use header session, not query param
+                    assert data["session_id"] == "header-session"
+    
+    def test_require_auth_closes_db_on_exception(self):
+        """Test that require_auth always closes database even on exception."""
+        app = Flask(__name__)
+        
+        @app.route('/test')
+        @require_auth
+        def test_route():
+            return {"status": "ok"}
+        
+        mock_session = Mock()
+        mock_session.session_id = "valid-session"
+        
+        with patch('backend.middleware.auth_middleware.session_manager') as mock_manager:
+            mock_manager.get_session.return_value = mock_session
+            
+            with patch('backend.database.SessionLocal') as mock_db_class:
+                mock_db = Mock()
+                mock_db_class.return_value = mock_db
+                # Make query raise exception
+                mock_db.query.side_effect = Exception("DB error")
+                
+                with app.test_client() as client:
+                    response = client.get('/test', headers={"X-Session-ID": "valid-session"})
+                    
+                    # Should still close DB even if exception occurred
+                    mock_db.close.assert_called_once()
 
