@@ -1,7 +1,9 @@
 """Pytest configuration and fixtures for OSC-FinOps tests."""
 import os
+import json
 import pytest
 import uuid
+from pathlib import Path
 from typing import Dict, Optional
 from unittest.mock import Mock
 from datetime import datetime, timedelta
@@ -10,11 +12,16 @@ from tests.utils.credential_helpers import (
     validate_credential_format
 )
 
+# Fixture file paths
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
+CATALOG_FIXTURE = FIXTURES_DIR / "euwest2_catalog.json"
+CONSUMPTION_FIXTURE = FIXTURES_DIR / "consumption_dec_2025.json"
+
 
 @pytest.fixture(scope="session")
 def test_base_url() -> str:
     """Fixture providing the base URL for API testing."""
-    return os.getenv("TEST_BASE_URL", "http://localhost:5000")
+    return os.getenv("TEST_BASE_URL", "http://localhost:8000")
 
 
 @pytest.fixture(scope="function")
@@ -273,6 +280,85 @@ def mock_cost_response():
                 }
             }
         }
+    }
+
+
+@pytest.fixture
+def catalog_fixture_data():
+    """
+    Fixture providing catalog data from fixture file.
+    
+    Returns:
+        Dictionary with catalog data from euwest2_catalog.json
+    """
+    if CATALOG_FIXTURE.exists():
+        with open(CATALOG_FIXTURE, 'r') as f:
+            return json.load(f)
+    return None
+
+
+@pytest.fixture
+def consumption_fixture_data():
+    """
+    Fixture providing consumption data from fixture file.
+    
+    Returns:
+        Dictionary with consumption data from consumption_dec_2025.json
+    """
+    if CONSUMPTION_FIXTURE.exists():
+        with open(CONSUMPTION_FIXTURE, 'r') as f:
+            content = f.read()
+            # File contains Python dict format, not JSON
+            import ast
+            return ast.literal_eval(content)
+    return None
+
+
+@pytest.fixture
+def formatted_catalog_data(catalog_fixture_data):
+    """
+    Fixture providing catalog data in the format expected by services.
+    
+    Transforms the fixture data to match the catalog service format.
+    
+    Returns:
+        Dictionary with catalog entries in service format
+    """
+    if not catalog_fixture_data:
+        return None
+    
+    # Transform catalog fixture to expected format
+    catalog_entries = catalog_fixture_data.get("Catalog", {}).get("Entries", [])
+    
+    return {
+        "region": "eu-west-2",
+        "currency": "EUR",
+        "entries": catalog_entries,
+        "entry_count": len(catalog_entries)
+    }
+
+
+@pytest.fixture
+def formatted_consumption_data(consumption_fixture_data):
+    """
+    Fixture providing consumption data in the format expected by services.
+    
+    Transforms the fixture data to match the consumption service format.
+    
+    Returns:
+        Dictionary with consumption entries in service format
+    """
+    if not consumption_fixture_data:
+        return None
+    
+    # Transform consumption fixture to expected format
+    consumption_entries = consumption_fixture_data.get("ConsumptionEntries", [])
+    
+    return {
+        "region": "eu-west-2",
+        "currency": "EUR",
+        "entries": consumption_entries,
+        "entry_count": len(consumption_entries)
     }
 
 
