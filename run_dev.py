@@ -23,7 +23,7 @@ if __name__ == "__main__":
         print("=" * 60)
         print("OSC-FinOps Development Server")
         print("=" * 60)
-        print(f"Server starting at: http://localhost:5000")
+        print(f"Server starting at: http://localhost:8000")
         print(f"Environment: {os.getenv('FLASK_ENV', 'development')}")
         print(f"Debug mode: {os.getenv('FLASK_DEBUG', '0')}")
         print("=" * 60)
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         print("=" * 60)
         print()
         
-        app.run(host="0.0.0.0", port=5000, debug=True)
+        app.run(host="0.0.0.0", port=8000, debug=True)
     
     except ImportError as e:
         print(f"ERROR: Missing dependency - {e}")

@@ -19,7 +19,7 @@ export FLASK_DEBUG=1
 
 # Start Flask development server
 echo "Starting OSC-FinOps development server..."
-echo "Server will be available at: http://localhost:5000"
+echo "Server will be available at: http://localhost:8000"
 echo "Press Ctrl+C to stop the server"
 echo ""
 echo "To test the server, run in another terminal:"
@@ -34,6 +34,6 @@ else
     export FLASK_APP=backend.app
     export FLASK_ENV=development
     export FLASK_DEBUG=1
-    python -m flask run --host=0.0.0.0 --port=5000 --debug
+    python -m flask run --host=0.0.0.0 --port=8000 --debug
 fi
 
