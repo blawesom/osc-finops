@@ -346,42 +346,18 @@ const CostManagementBuilder = {
             this.showLoading();
             this.hideError();
             
-            // Determine end date for trend projection (use budget end_date if available)
-            let trendEndDate = this.filters.to_date;
-            if (this.selectedBudget && this.selectedBudget.end_date) {
-                // Project trend until budget end date
-                trendEndDate = this.selectedBudget.end_date;
-            }
-            
-            // Functional check: determine if from_date is in past (for projection logic, not validation)
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const fromDate = new Date(this.filters.from_date);
-            fromDate.setHours(0, 0, 0, 0);
-            const isFromDateInPast = fromDate < today;
-            
-            // Load trend data with projection
-            // Note: API handles projection rules based on from_date position
+            // Load trend data - backend automatically projects when to_date is after yesterday
             const trendParams = {
                 from_date: this.filters.from_date,
                 to_date: this.filters.to_date,
                 granularity: this.filters.granularity
             };
             
-            // Only project if from_date is in future or if explicitly requested with budget
-            if (!isFromDateInPast && this.selectedBudget && this.selectedBudget.end_date) {
-                trendParams.project_until = trendEndDate;
-            } else if (!isFromDateInPast) {
-                // from_date in future: project until to_date
-                trendParams.project_until = this.filters.to_date;
-            }
-            // If from_date in past: no projection (handled by API)
-            
             if (this.filters.region) {
                 trendParams.region = this.filters.region;
             }
             
-            // Pass budget_id for boundary alignment
+            // Pass budget_id for boundary alignment (optional)
             if (this.selectedBudget) {
                 trendParams.budget_id = this.selectedBudget.budget_id;
             }
@@ -433,7 +409,7 @@ const CostManagementBuilder = {
                     this.selectedBudget.budget_id,
                     {
                         from_date: this.filters.from_date,
-                        to_date: trendEndDate
+                        to_date: this.filters.to_date
                     }
                 );
                 this.budgetStatus = budgetStatusResponse.data;
@@ -918,16 +894,18 @@ const CostManagementBuilder = {
             });
         }
         
-        // Calculate projected cost from last consumption value
+        // Calculate projected cost by repeating last consumption value
+        // Simplified projection: all projected periods use the same cost as the last queriable period
         const projectedCostByPeriod = {};
-        if (Object.keys(consumptionByPeriod).length > 0 && this.currentTrendData?.growth_rate !== undefined) {
+        if (Object.keys(consumptionByPeriod).length > 0) {
             // Determine end date for projection (use budget end_date if available, otherwise to_date)
             let projectionEndDate = this.filters.to_date;
             if (this.selectedBudget && this.selectedBudget.end_date) {
                 projectionEndDate = this.selectedBudget.end_date;
             }
             
-            const growthRate = this.currentTrendData.growth_rate || 0;
+            // Note: growthRate parameter kept for backward compatibility but not used in calculation
+            const growthRate = this.currentTrendData?.growth_rate || 0;
             const projected = this.calculateProjectedCost(
                 consumptionByPeriod,
                 growthRate,
@@ -1177,10 +1155,10 @@ const CostManagementBuilder = {
     
     /**
      * Calculate projected cost periods from last consumption value
-     * Uses compounding growth rate: cost = last_cost * (1 + growth_rate/100)^periods_ahead
+     * Simplified projection: repeats last period's cost for all projected periods
      * 
      * @param {Object} consumptionByPeriod - Object mapping period keys to consumption values
-     * @param {number} growthRate - Growth rate percentage (e.g., 5 for 5%)
+     * @param {number} growthRate - Growth rate percentage (kept for backward compatibility, but not used in calculation)
      * @param {string} granularity - Granularity ('day', 'week', 'month')
      * @param {string} endDate - End date for projection (YYYY-MM-DD)
      * @returns {Object} Object mapping period keys to projected cost values
@@ -1205,9 +1183,9 @@ const CostManagementBuilder = {
         const endDateObj = new Date(endDate);
         endDateObj.setHours(23, 59, 59, 999);
         
-        // Generate projected periods starting from next period after last consumption
-        let currentPeriodKey = this.getNextPeriodKey(lastPeriodKey, granularity);
-        let periodAhead = 1;
+        // Generate projected periods starting from last consumption period
+        // This ensures the first projection point is plotted at the same position as the last consumption point
+        let currentPeriodKey = lastPeriodKey;
         
         while (true) {
             // Check if current period exceeds end date
@@ -1227,16 +1205,14 @@ const CostManagementBuilder = {
                 break;
             }
             
-            // Calculate projected cost using compounding growth
-            const projectedCost = lastCost * Math.pow(1 + growthRate / 100, periodAhead);
-            projected[currentPeriodKey] = Math.max(0, projectedCost);
+            // Simplified projection: repeat last period's cost for all projected periods
+            projected[currentPeriodKey] = Math.max(0, lastCost);
             
             // Move to next period
             currentPeriodKey = this.getNextPeriodKey(currentPeriodKey, granularity);
-            periodAhead += 1;
             
             // Safety limit to prevent infinite loops
-            if (periodAhead > 1000) {
+            if (Object.keys(projected).length > 1000) {
                 break;
             }
         }

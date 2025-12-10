@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 
 from backend.services.trend_service import calculate_trends_async
+from backend.services.budget_service import get_budget
 from backend.utils.date_validators import validate_date_range
 from backend.services.job_queue import job_queue
 from backend.config.settings import SUPPORTED_REGIONS
@@ -15,7 +16,7 @@ from backend.middleware.auth_middleware import require_auth
 trends_bp = Blueprint('trends', __name__)
 
 
-from backend.utils.session_helpers import get_account_id_from_session
+from backend.utils.session_helpers import get_account_id_from_session, get_user_id_from_session
 
 
 @trends_bp.route('/trends/async', methods=['POST'])
@@ -32,6 +33,10 @@ def submit_trends_job():
         - region: Filter by region (optional, uses session region if not provided)
         - resource_type: Filter by resource type (optional)
         - force_refresh: Force refresh cache (optional: true/false)
+        - budget_id: Budget ID for period boundary alignment (optional)
+    
+    Note: Projection happens automatically when to_date extends beyond yesterday.
+    If budget_id is provided, projected periods are aligned to budget boundaries.
     
     Returns:
         Job ID and initial status
@@ -48,6 +53,7 @@ def submit_trends_job():
     region = data.get('region')
     resource_type = data.get('resource_type')
     force_refresh = data.get('force_refresh', False)
+    budget_id = data.get('budget_id')
     
     # Validate required parameters
     if not from_date or not to_date:
@@ -77,6 +83,17 @@ def submit_trends_job():
     # Use session region if region not specified
     query_region = region or session.region
     
+    # Fetch budget if budget_id provided
+    budget = None
+    if budget_id:
+        user_id = get_user_id_from_session()
+        if not user_id:
+            raise APIError("Could not retrieve user information", status_code=401)
+        
+        budget = get_budget(budget_id, user_id)
+        if not budget:
+            raise APIError("Budget not found", status_code=404)
+    
     # Create job
     job_id = job_queue.create_job(
         job_type="trends",
@@ -85,7 +102,8 @@ def submit_trends_job():
             "to_date": to_date,
             "granularity": granularity,
             "region": query_region,
-            "resource_type": resource_type
+            "resource_type": resource_type,
+            "budget_id": budget_id
         }
     )
     
@@ -112,7 +130,8 @@ def submit_trends_job():
                 granularity=granularity,
                 resource_type=resource_type,
                 force_refresh=force_refresh,
-                progress_callback=progress_callback
+                progress_callback=progress_callback,
+                budget=budget
             )
             
             # Set result

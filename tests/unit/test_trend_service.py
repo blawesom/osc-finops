@@ -188,7 +188,7 @@ class TestProjectTrendUntilDate:
     """Tests for project_trend_until_date function."""
     
     def test_project_trend_until_date_increasing(self):
-        """Test projecting increasing trend."""
+        """Test projecting increasing trend - simplified projection repeats last cost."""
         trend_data = {
             "periods": [
                 {"period": "2024-01-31", "to_date": "2024-01-31", "cost": 100.0},
@@ -208,9 +208,13 @@ class TestProjectTrendUntilDate:
         # Projected periods should have "projected": True
         projected = [p for p in result["periods"] if p.get("projected")]
         assert len(projected) > 0
+        # Simplified projection: all projected costs equal to last cost (140.0)
+        last_cost = trend_data["periods"][-1]["cost"]
+        for period in projected:
+            assert period["cost"] == last_cost
     
     def test_project_trend_until_date_decreasing(self):
-        """Test projecting decreasing trend."""
+        """Test projecting decreasing trend - simplified projection repeats last cost."""
         trend_data = {
             "periods": [
                 {"period": "2024-01-31", "to_date": "2024-01-31", "cost": 200.0},
@@ -226,9 +230,12 @@ class TestProjectTrendUntilDate:
         
         assert "projected_periods" in result
         assert result["projected_periods"] > 0
-        # Projected costs should be decreasing (negative growth rate)
+        # Simplified projection: all projected costs equal to last cost (160.0)
         projected = [p for p in result["periods"] if p.get("projected")]
         assert len(projected) > 0
+        last_cost = trend_data["periods"][-1]["cost"]
+        for period in projected:
+            assert period["cost"] == last_cost
     
     def test_project_trend_until_date_before_end(self):
         """Test projecting when end_date is before last period."""
@@ -248,7 +255,7 @@ class TestProjectTrendUntilDate:
         assert result == trend_data
     
     def test_project_trend_until_date_stable(self):
-        """Test projecting stable trend."""
+        """Test projecting stable trend - simplified projection repeats last cost."""
         trend_data = {
             "periods": [
                 {"period": "2024-01-31", "to_date": "2024-01-31", "cost": 100.0},
@@ -263,10 +270,11 @@ class TestProjectTrendUntilDate:
         result = project_trend_until_date(trend_data, "2024-06-30")
         
         assert "projected_periods" in result
-        # Projected costs should be close to last cost (100.0) since growth is 0
+        # Simplified projection: all projected costs equal to last cost (100.0)
         projected = [p for p in result["periods"] if p.get("projected")]
+        last_cost = trend_data["periods"][-1]["cost"]
         for period in projected:
-            assert abs(period["cost"] - 100.0) < 1.0  # Should stay close to 100
+            assert period["cost"] == last_cost
     
     def test_project_trend_until_date_week_granularity(self):
         """Test projecting with week granularity."""
@@ -313,7 +321,7 @@ class TestProjectTrendUntilDate:
             assert len(result["periods"]) > len(trend_data["periods"])
     
     def test_project_trend_until_date_negative_growth(self):
-        """Test projection with negative growth rate."""
+        """Test projection with negative growth rate - simplified projection repeats last cost."""
         trend_data = {
             "periods": [
                 {"period": "2024-01-31", "to_date": "2024-01-31", "cost": 200.0},
@@ -328,12 +336,13 @@ class TestProjectTrendUntilDate:
         
         projected = [p for p in result["periods"] if p.get("projected")]
         assert len(projected) > 0
-        # Projected costs should be decreasing
-        for i in range(1, len(projected)):
-            assert projected[i]["cost"] <= projected[i-1]["cost"]
+        # Simplified projection: all projected costs equal to last cost (180.0)
+        last_cost = trend_data["periods"][-1]["cost"]
+        for period in projected:
+            assert period["cost"] == last_cost
     
     def test_project_trend_until_date_high_growth_rate(self):
-        """Test projection with very high growth rate."""
+        """Test projection with very high growth rate - simplified projection repeats last cost."""
         trend_data = {
             "periods": [
                 {"period": "2024-01-31", "to_date": "2024-01-31", "cost": 100.0},
@@ -348,9 +357,10 @@ class TestProjectTrendUntilDate:
         
         projected = [p for p in result["periods"] if p.get("projected")]
         assert len(projected) > 0
-        # Projected costs should be increasing
-        for i in range(1, len(projected)):
-            assert projected[i]["cost"] >= projected[i-1]["cost"]
+        # Simplified projection: all projected costs equal to last cost (200.0)
+        last_cost = trend_data["periods"][-1]["cost"]
+        for period in projected:
+            assert period["cost"] == last_cost
     
     def test_project_trend_until_date_invalid_date_format(self):
         """Test projection with invalid date format."""
@@ -389,6 +399,35 @@ class TestProjectTrendUntilDate:
         
         result = project_trend_until_date(trend_data, "2024-06-30")
         assert result == trend_data
+    
+    def test_project_trend_until_date_repeats_last_cost(self):
+        """Test that simplified projection repeats last cost for all projected periods."""
+        trend_data = {
+            "periods": [
+                {"period": "2024-01-31", "to_date": "2024-01-31", "cost": 50.0},
+                {"period": "2024-02-29", "to_date": "2024-02-29", "cost": 75.0},
+                {"period": "2024-03-31", "to_date": "2024-03-31", "cost": 100.0}
+            ],
+            "growth_rate": 50.0,  # High growth rate, but projection should ignore it
+            "historical_average": 75.0,
+            "granularity": "month"
+        }
+        
+        result = project_trend_until_date(trend_data, "2024-06-30")
+        
+        assert "projected_periods" in result
+        assert result["projected_periods"] == 3  # April, May, June
+        
+        projected = [p for p in result["periods"] if p.get("projected")]
+        assert len(projected) == 3
+        
+        # All projected periods should have the same cost as the last historical period (100.0)
+        last_cost = trend_data["periods"][-1]["cost"]
+        assert last_cost == 100.0
+        
+        for period in projected:
+            assert period["cost"] == last_cost, f"Expected {last_cost}, got {period['cost']}"
+            assert period.get("projected") is True
 
 
 class TestGetMonthlyWeekEnd:
@@ -547,7 +586,7 @@ class TestFindLastPeriodExcludingToday:
         mock_datetime.strptime = datetime.strptime
         
         result = find_last_period_excluding_today("month", "2024-01-01", "2024-03-31")
-        assert result == "2024-01-01"  # Previous month start
+        assert result == "2024-01-31"  # Last day of previous month (January)
     
     @patch('backend.services.trend_service.datetime')
     def test_find_last_period_excluding_today_month_year_boundary(self, mock_datetime):
@@ -556,7 +595,7 @@ class TestFindLastPeriodExcludingToday:
         mock_datetime.strptime = datetime.strptime
         
         result = find_last_period_excluding_today("month", "2023-12-01", "2024-02-28")
-        assert result == "2023-12-01"  # Previous month (December)
+        assert result == "2023-12-31"  # Last day of previous month (December)
     
     @patch('backend.services.trend_service.datetime')
     def test_find_last_period_excluding_today_invalid_granularity(self, mock_datetime):

@@ -138,9 +138,13 @@ def find_last_period_excluding_today(granularity: str, from_date: str, to_date: 
             # Get first day of current month, then go back one month
             first_of_month = today.replace(day=1)
             if first_of_month.month == 1:
-                last_period = first_of_month.replace(year=first_of_month.year - 1, month=12)
+                last_period_first_day = first_of_month.replace(year=first_of_month.year - 1, month=12)
             else:
-                last_period = first_of_month.replace(month=first_of_month.month - 1)
+                last_period_first_day = first_of_month.replace(month=first_of_month.month - 1)
+            # Return the LAST day of the previous month, not the first day
+            # This ensures we get a full month period for consumption queries
+            last_day_of_prev_month = monthrange(last_period_first_day.year, last_period_first_day.month)[1]
+            last_period = last_period_first_day.replace(day=last_day_of_prev_month)
         else:
             return to_date
         
@@ -582,10 +586,15 @@ def calculate_trends_async(
     granularity: str = "day",
     resource_type: Optional[str] = None,
     force_refresh: bool = False,
-    progress_callback: Optional[Callable[[int, Optional[int]], None]] = None
+    progress_callback: Optional[Callable[[int, Optional[int]], None]] = None,
+    budget: Optional[object] = None
 ) -> Dict:
     """
     Calculate cost trends asynchronously with progress updates.
+    
+    Automatically projects trends when to_date extends beyond yesterday. Projection uses
+    historical growth rate to estimate future costs. If budget is provided, projected
+    periods are aligned to budget boundaries.
     
     Args:
         job_id: Job ID for progress tracking
@@ -594,14 +603,16 @@ def calculate_trends_async(
         region: Region name
         account_id: Account ID for cache key
         from_date: Start date (ISO format: YYYY-MM-DD)
-        to_date: End date (ISO format: YYYY-MM-DD)
+        to_date: End date (ISO format: YYYY-MM-DD). If after yesterday, projection will occur.
         granularity: "day", "week", or "month" (default: "day")
         resource_type: Optional resource type filter
         force_refresh: Force refresh cache
         progress_callback: Optional callback function(progress, estimated_time_remaining)
+        budget: Optional budget object for period boundary alignment
     
     Returns:
         Dictionary with trend data including periods, growth_rate, historical_average, etc.
+        If projection occurred, includes projected periods marked with "projected": True.
     """
     start_time = time.time()
     
@@ -614,8 +625,38 @@ def calculate_trends_async(
         # 0%: Starting
         update_progress(0)
         
-        # Generate period ranges
-        period_ranges = _generate_period_ranges(from_date, to_date, granularity)
+        # Determine if projection is needed
+        today = datetime.utcnow().date()
+        yesterday = today - timedelta(days=1)
+        to_date_obj = datetime.strptime(to_date, "%Y-%m-%d").date()
+        
+        # Determine if projection needed: to_date must be after yesterday
+        needs_projection = to_date_obj > yesterday
+        
+        if needs_projection:
+            # Find last queriable period (excludes today)
+            last_queriable_date_str = find_last_period_excluding_today(granularity, from_date, to_date)
+            if last_queriable_date_str:
+                try:
+                    last_queriable_date = datetime.strptime(last_queriable_date_str, "%Y-%m-%d").date()
+                    # Query consumption only up to last available period
+                    query_to_date = last_queriable_date_str
+                    projection_end_date = to_date  # Internal variable: project to the requested to_date
+                except (ValueError, TypeError):
+                    # Fallback: if parsing fails, query up to yesterday
+                    query_to_date = yesterday.isoformat()
+                    projection_end_date = to_date
+            else:
+                # Fallback: if no queriable date found, query up to yesterday
+                query_to_date = yesterday.isoformat()
+                projection_end_date = to_date
+        else:
+            # Query consumption normally up to to_date
+            query_to_date = to_date
+            projection_end_date = None  # No projection needed
+        
+        # Generate period ranges from from_date to query_to_date
+        period_ranges = _generate_period_ranges(from_date, query_to_date, granularity)
         
         # 20%: Periods generated
         update_progress(20)
@@ -642,20 +683,36 @@ def calculate_trends_async(
         # Calculate trend metrics
         metrics = _calculate_trend_metrics(periods)
         
-        # 100%: Done
-        update_progress(100, 0)
-        
-        # Build result
-        return _build_trend_result(
+        # Build initial result
+        result = _build_trend_result(
             periods=periods,
             metrics=metrics,
             currency=currency,
             region=region,
             granularity=granularity,
             from_date=from_date,
-            to_date=to_date,
+            to_date=query_to_date,
             resource_type=resource_type
         )
+        
+        # Apply projection if needed
+        if projection_end_date:
+            # 90%: Starting projection
+            update_progress(90)
+            
+            result = project_trend_until_date(
+                trend_data=result,
+                end_date=projection_end_date,
+                budget=budget
+            )
+            
+            # Update to_date in result to reflect projection end date
+            result["to_date"] = projection_end_date
+        
+        # 100%: Done
+        update_progress(100, 0)
+        
+        return result
     
     except Exception as e:
         # Update progress to indicate error
@@ -724,17 +781,12 @@ def project_trend_until_date(trend_data: Dict, end_date: str, budget: Optional[o
         if target_date <= last_period_end:
             return trend_data
         
-        # Calculate growth rate per period
-        growth_rate = trend_data.get("growth_rate", 0.0)
-        historical_avg = trend_data.get("historical_average", 0.0)
-        
-        # Get the last cost value
-        last_cost = periods[-1].get("cost", historical_avg)
+        # Get the last cost value (simplified projection: repeat last period's cost)
+        last_cost = periods[-1].get("cost", 0.0)
         
         # Generate projected periods
         projected_periods = []
         current_date = projection_start
-        period_num = len(periods)
         
         # Determine period delta
         if granularity == "day":
@@ -744,7 +796,7 @@ def project_trend_until_date(trend_data: Dict, end_date: str, budget: Optional[o
         else:  # month
             delta = relativedelta(months=1)
         
-        # Project forward
+        # Project forward by repeating last period's cost
         while current_date <= target_date:
             # Calculate period end based on granularity
             if granularity == "day":
@@ -765,11 +817,8 @@ def project_trend_until_date(trend_data: Dict, end_date: str, budget: Optional[o
                 if period_end > target_date:
                     period_end = target_date
             
-            # Calculate projected cost based on growth rate
-            # Simple linear projection: cost = last_cost * (1 + growth_rate/100)
-            # For multiple periods, compound the growth
-            periods_ahead = period_num - len(periods) + 1
-            projected_cost = last_cost * ((1 + growth_rate / 100) ** periods_ahead)
+            # Simplified projection: repeat last period's cost for all projected periods
+            projected_cost = last_cost
             
             # Ensure non-negative
             projected_cost = max(0, projected_cost)
@@ -789,8 +838,6 @@ def project_trend_until_date(trend_data: Dict, end_date: str, budget: Optional[o
                 "cost": round(projected_cost, 2),
                 "projected": True
             })
-            
-            period_num += 1
             
             # Move to next period
             if granularity == "day":

@@ -28,14 +28,18 @@ const TrendsService = {
 
     /**
      * Submit async trend calculation job.
+     * 
+     * Note: Projection happens automatically when to_date extends beyond yesterday.
+     * If budget_id is provided, projected periods are aligned to budget boundaries.
+     * 
      * @param {Object} params - Query parameters
      * @param {string} params.from_date - Start date (YYYY-MM-DD)
-     * @param {string} params.to_date - End date (YYYY-MM-DD)
+     * @param {string} params.to_date - End date (YYYY-MM-DD). If after yesterday, projection will occur.
      * @param {string} [params.granularity] - Granularity: 'day', 'week', 'month'
      * @param {string} [params.region] - Filter by region
      * @param {string} [params.resource_type] - Filter by resource type
      * @param {boolean} [params.force_refresh] - Force cache refresh
-     * @param {string} [params.budget_id] - Budget ID for period boundary alignment
+     * @param {string} [params.budget_id] - Budget ID for period boundary alignment (optional)
      * @returns {Promise<Object>} Job submission response with job_id
      */
     async submitTrendsJob(params) {
