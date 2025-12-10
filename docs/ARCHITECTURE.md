@@ -203,18 +203,23 @@ User → Frontend (Consumption Module)
 
 ```
 User → Frontend (Cost Management Module)
-  → GET /api/trends?from_date=X&to_date=Y&granularity=day&budget_id=Z
-  → Backend Trends API
+  → POST /api/trends/async (submit job with from_date, to_date, granularity, budget_id)
+  → Backend Trends API (async endpoint)
   → Validate to_date is in past by at least 1 granularity period
   → Validate from_date < to_date (ToDate is exclusive)
-  → Backend Trend Service
-  → Check if from_date is in past or future
-  → If from_date in past: Query consumption until to_date, no projection
-  → If from_date in future: Query consumption until last period excluding today, then project
-  → If budget provided: Align periods to budget boundaries
-  → Calculate trends (growth rate, historical average, period changes)
-  → Project trend if needed (respecting budget boundaries)
-  → Return trend data with projection flag
+  → Create async job and return job_id
+  → Background thread processes job:
+    → Backend Trend Service
+    → Check if from_date is in past or future
+    → If from_date in past: Query consumption until to_date, no projection
+    → If from_date in future: Query consumption until last period excluding today, then project
+    → If budget provided: Align periods to budget boundaries
+    → Calculate trends (growth rate, historical average, period changes)
+    → Project trend if needed (respecting budget boundaries)
+    → Update job progress during processing
+    → Store result in job queue
+  → Frontend polls GET /api/trends/jobs/<job_id> for status
+  → When completed, retrieve result from job
   → Frontend displays trends (projected periods shown with dashed line)
 ```
 

@@ -390,31 +390,20 @@ const CostManagementBuilder = {
             this.showProgressBar();
             this.updateProgressBar(0);
             
-            // Try async job for trends first, fallback to direct call
+            // Load trends using async job
             try {
-                if (TrendsService.submitTrendsJob) {
-                    const jobResponse = await TrendsService.submitTrendsJob(trendParams);
-                    const jobId = jobResponse.job_id;
-                    
-                    const onProgress = (progress, estimatedRemaining) => {
-                        this.updateProgressBar(progress, estimatedRemaining);
-                    };
-                    
-                    const statusResponse = await TrendsService.pollJobStatus(jobId, onProgress, 2000);
-                    this.currentTrendData = statusResponse.result;
-                } else {
-                    throw new Error('Async trends not available');
-                }
+                const jobResponse = await TrendsService.submitTrendsJob(trendParams);
+                const jobId = jobResponse.job_id;
+                
+                const onProgress = (progress, estimatedRemaining) => {
+                    this.updateProgressBar(progress, estimatedRemaining);
+                };
+                
+                const statusResponse = await TrendsService.pollJobStatus(jobId, onProgress, 2000);
+                this.currentTrendData = statusResponse.result;
             } catch (error) {
-                // Fallback to direct call if async not available
-                try {
-                    const trendResponse = await TrendsService.getTrends(trendParams);
-                    this.currentTrendData = trendResponse.data;
-                } catch (trendError) {
-                    console.warn('Failed to load trends:', trendError);
-                    // Continue without trends data
-                    this.currentTrendData = null;
-                }
+                this.showError(error.message || 'Failed to load trends');
+                this.currentTrendData = null;
             } finally {
                 // Hide progress bar after trends loading completes
                 this.hideProgressBar();

@@ -27,70 +27,15 @@ const TrendsService = {
     },
 
     /**
-     * Get trend analysis data.
-     * 
-     * Validation rules (enforced by backend):
-     * - from_date must be in the past
-     * - to_date must be >= from_date + 1 granularity period
-     * 
-     * Functional rules (not validation):
-     * - If from_date is in the past: do not show projected trend
-     * - If from_date is in the future: query consumption until last period excluding today, then project trend
-     * 
+     * Submit async trend calculation job.
      * @param {Object} params - Query parameters
-     * @param {string} params.from_date - Start date (YYYY-MM-DD) - must be in past
-     * @param {string} params.to_date - End date (YYYY-MM-DD) - must be >= from_date + 1 granularity period
+     * @param {string} params.from_date - Start date (YYYY-MM-DD)
+     * @param {string} params.to_date - End date (YYYY-MM-DD)
      * @param {string} [params.granularity] - Granularity: 'day', 'week', 'month'
      * @param {string} [params.region] - Filter by region
      * @param {string} [params.resource_type] - Filter by resource type
      * @param {boolean} [params.force_refresh] - Force cache refresh
-     * @param {string} [params.project_until] - End date for trend projection
      * @param {string} [params.budget_id] - Budget ID for period boundary alignment
-     * @returns {Promise<Object>} Trend data
-     */
-    async getTrends(params) {
-        try {
-            const queryParams = new URLSearchParams();
-            
-            // Required parameters
-            if (params.from_date) queryParams.append('from_date', params.from_date);
-            if (params.to_date) queryParams.append('to_date', params.to_date);
-            
-            // Optional parameters
-            if (params.granularity) queryParams.append('granularity', params.granularity);
-            if (params.region) queryParams.append('region', params.region);
-            if (params.resource_type) queryParams.append('resource_type', params.resource_type);
-            if (params.force_refresh) queryParams.append('force_refresh', 'true');
-            if (params.project_until) queryParams.append('project_until', params.project_until);
-            if (params.budget_id) queryParams.append('budget_id', params.budget_id);
-            
-            const response = await fetch(`${this.API_BASE}/trends?${queryParams.toString()}`, {
-                method: 'GET',
-                headers: this.getHeaders()
-            });
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error?.message || `HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            if (data.success) {
-                this.currentTrendData = data.data;
-                return data;
-            } else {
-                throw new Error(data.error?.message || 'Failed to fetch trend data');
-            }
-        } catch (error) {
-            console.error('Get trends error:', error);
-            throw error;
-        }
-    },
-
-
-    /**
-     * Submit async trend calculation job.
-     * @param {Object} params - Query parameters (same as getTrends)
      * @returns {Promise<Object>} Job submission response with job_id
      */
     async submitTrendsJob(params) {

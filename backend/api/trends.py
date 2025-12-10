@@ -1,131 +1,21 @@
 """Trends API endpoints."""
-import csv
-import io
 import threading
 from typing import Optional
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify
 from datetime import datetime
 
-from backend.services.trend_service import (
-    calculate_trends, 
-    calculate_trends_async, 
-    project_trend_until_date
-)
+from backend.services.trend_service import calculate_trends_async
 from backend.utils.date_validators import validate_date_range
 from backend.services.job_queue import job_queue
 from backend.config.settings import SUPPORTED_REGIONS
 from backend.utils.errors import APIError
 from backend.middleware.auth_middleware import require_auth
-from backend.database import SessionLocal
-from backend.models.user import User
 
 
 trends_bp = Blueprint('trends', __name__)
 
 
 from backend.utils.session_helpers import get_account_id_from_session
-
-
-@trends_bp.route('/trends', methods=['GET'])
-@require_auth
-def get_trends():
-    """
-    Get trend analysis for a date range.
-    Authentication required.
-    
-    Query parameters:
-        - from_date: Start date (required, ISO format: YYYY-MM-DD)
-        - to_date: End date (required, ISO format: YYYY-MM-DD)
-        - granularity: "day", "week", or "month" (optional, default: "day")
-        - region: Filter by region (optional, uses session region if not provided)
-        - resource_type: Filter by resource type (optional)
-        - force_refresh: Force refresh cache (optional: true/false)
-    """
-    session = getattr(request, 'session', None)
-    if not session:
-        raise APIError("Authentication required", status_code=401)
-    
-    # Get query parameters
-    from_date = request.args.get('from_date')
-    to_date = request.args.get('to_date')
-    granularity = request.args.get('granularity', 'day')
-    region = request.args.get('region')
-    resource_type = request.args.get('resource_type')
-    force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
-    project_until = request.args.get('project_until')  # Optional projection end date
-    
-    # Validate required parameters
-    if not from_date or not to_date:
-        raise APIError("from_date and to_date parameters are required", status_code=400)
-    
-    # Validate date range using centralized validator
-    is_valid, error_msg = validate_date_range(from_date, to_date, granularity)
-    if not is_valid:
-        raise APIError(error_msg, status_code=400)
-    
-    # Validate granularity
-    if granularity not in ['day', 'week', 'month']:
-        raise APIError("granularity must be 'day', 'week', or 'month'", status_code=400)
-    
-    # Validate region if provided
-    if region and region not in SUPPORTED_REGIONS:
-        raise APIError(
-            f"Unsupported region: {region}. Supported regions: {', '.join(SUPPORTED_REGIONS)}",
-            status_code=400
-        )
-    
-    # Get account_id from session
-    account_id = get_account_id_from_session()
-    if not account_id:
-        raise APIError("Could not retrieve account information", status_code=401)
-    
-    # Use session region if region not specified
-    query_region = region or session.region
-    
-    # Get budget_id if provided (for boundary alignment)
-    budget_id = request.args.get('budget_id')
-    budget = None
-    if budget_id:
-        # Import here to avoid circular dependency
-        from backend.services.budget_service import get_budget
-        from backend.utils.session_helpers import get_user_id_from_session
-        user_id = get_user_id_from_session()
-        if user_id:
-            budget = get_budget(budget_id, user_id)
-    
-    try:
-        # Calculate trends with new validation and projection rules
-        trend_data = calculate_trends(
-            access_key=session.access_key,
-            secret_key=session.secret_key,
-            region=query_region,
-            account_id=account_id,
-            from_date=from_date,
-            to_date=to_date,
-            granularity=granularity,
-            resource_type=resource_type,
-            force_refresh=force_refresh,
-            budget=budget,
-            project_until=project_until
-        )
-        
-        return jsonify({
-            "success": True,
-            "data": trend_data,
-            "metadata": {
-                "from_date": from_date,
-                "to_date": project_until or to_date,
-                "region": query_region,
-                "granularity": granularity,
-                "resource_type": resource_type,
-                "projected": bool(project_until)
-            }
-        }), 200
-    
-    except ValueError as e:
-        raise APIError(str(e), status_code=400)
-    except Exception as e:
-        raise APIError(f"Failed to calculate trends: {str(e)}", status_code=500)
 
 
 @trends_bp.route('/trends/async', methods=['POST'])
