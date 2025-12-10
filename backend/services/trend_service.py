@@ -493,134 +493,6 @@ def _build_trend_result(
     return result
 
 
-def calculate_trends(
-    access_key: str,
-    secret_key: str,
-    region: str,
-    account_id: str,
-    from_date: str,
-    to_date: str,
-    granularity: str = "day",
-    resource_type: Optional[str] = None,
-    force_refresh: bool = False,
-    budget: Optional[object] = None,
-    project_until: Optional[str] = None
-) -> Dict:
-    """
-    Calculate cost trends over time.
-    
-    Validation rules (enforced by validate_date_range):
-    - from_date must be in the past
-    - to_date must be >= from_date + 1 granularity period
-    
-    Functional rules (not validation):
-    - If from_date is in the past: do not show projected trend
-    - If from_date is in the future: query consumption until last period excluding today, then project trend
-    
-    Args:
-        access_key: Outscale access key
-        secret_key: Outscale secret key
-        region: Region name
-        account_id: Account ID for cache key
-        from_date: Start date (ISO format: YYYY-MM-DD)
-        to_date: End date (ISO format: YYYY-MM-DD)
-        granularity: "day", "week", or "month" (default: "day")
-        resource_type: Optional resource type filter
-        force_refresh: Force refresh cache
-        budget: Optional budget object for boundary alignment
-        project_until: Optional end date for trend projection
-    
-    Returns:
-        Dictionary with trend data including:
-        - periods: List of periods with costs
-        - growth_rate: Overall growth rate percentage
-        - historical_average: Average cost per period
-        - period_changes: List of period-over-period changes
-        - trend_direction: "increasing", "decreasing", or "stable"
-        - projected: Boolean indicating if projection was performed
-    """
-    # Validate date range (validation: from_date in past, to_date >= from_date + 1 period)
-    is_valid, error_msg = validate_date_range(from_date, to_date, granularity)
-    if not is_valid:
-        raise ValueError(error_msg)
-    
-    # Functional check: determine if to_date is in past or future (for projection logic, not validation)
-    to_dt = datetime.strptime(to_date, "%Y-%m-%d")
-    today = datetime.utcnow().date()
-    to_date_obj = to_dt.date()
-    is_to_date_in_past = to_date_obj < today
-    
-    # Determine actual query end date
-    # If to_date is in future, query until last period excluding today
-    if not is_to_date_in_past:
-        actual_to_date = find_last_period_excluding_today(granularity, from_date, to_date)
-        if actual_to_date:
-            query_to_date = actual_to_date
-            should_project = True
-            project_end_date = project_until or to_date
-        else:
-            query_to_date = to_date
-            should_project = True
-            project_end_date = to_date
-    else:
-        query_to_date = to_date
-        should_project = False
-        project_end_date = None
-    
-    # Generate period ranges
-    period_ranges = _generate_period_ranges(from_date, query_to_date, granularity)
-    
-    # Fetch consumption data and calculate costs (using exclusive ToDate)
-    periods, currency = _fetch_period_costs(
-        period_ranges=period_ranges,
-        access_key=access_key,
-        secret_key=secret_key,
-        region=region,
-        account_id=account_id,
-        resource_type=resource_type,
-        force_refresh=force_refresh,
-        use_exclusive_todate=True
-    )
-    
-    # Align periods to budget boundaries if budget is provided
-    if budget:
-        periods = align_periods_to_budget_boundaries(periods, budget)
-    
-    # Calculate trend metrics
-    metrics = _calculate_trend_metrics(periods)
-    
-    # Project trend if needed
-    projected_periods = []
-    if should_project and project_end_date:
-        trend_data_for_projection = {
-            "periods": periods,
-            "growth_rate": metrics["growth_rate"],
-            "historical_average": metrics["historical_average"],
-            "granularity": granularity
-        }
-        projected_data = project_trend_until_date(trend_data_for_projection, project_end_date, budget)
-        projected_periods = projected_data.get("periods", [])[len(periods):] if len(projected_data.get("periods", [])) > len(periods) else []
-        # Combine historical and projected periods
-        all_periods = periods + projected_periods
-    else:
-        all_periods = periods
-    
-    # Build result
-    final_to_date = project_end_date if should_project and project_end_date else to_date
-    return _build_trend_result(
-        periods=all_periods,
-        metrics=metrics,
-        currency=currency,
-        region=region,
-        granularity=granularity,
-        from_date=from_date,
-        to_date=final_to_date,
-        resource_type=resource_type,
-        projected=should_project and len(projected_periods) > 0,
-        projected_periods=len(projected_periods) if should_project else 0
-    )
-
-
 def calculate_growth_rate(periods: List[Dict]) -> float:
     """
     Calculate overall growth rate from periods.
@@ -729,7 +601,7 @@ def calculate_trends_async(
         progress_callback: Optional callback function(progress, estimated_time_remaining)
     
     Returns:
-        Dictionary with trend data (same as calculate_trends)
+        Dictionary with trend data including periods, growth_rate, historical_average, etc.
     """
     start_time = time.time()
     
@@ -796,7 +668,7 @@ def project_trend_until_date(trend_data: Dict, end_date: str, budget: Optional[o
     Extend trend projection until specified end date.
     
     Args:
-        trend_data: Trend data dictionary from calculate_trends
+        trend_data: Trend data dictionary with periods, growth_rate, historical_average, granularity
         end_date: Target end date (ISO format: YYYY-MM-DD)
         budget: Optional budget object for boundary alignment
     
