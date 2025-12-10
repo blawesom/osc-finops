@@ -36,7 +36,7 @@ cd osc-finops
 ./start.sh
 ```
 
-The application will be available at: **http://localhost:5000**
+The application will be available at: **http://localhost:8000**
 
 ### Manual Installation
 
@@ -51,12 +51,12 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Start the server
-python -m flask --app backend/app run --host=0.0.0.0 --port=5000 --debug
+python -m flask --app backend/app run --host=0.0.0.0 --port=8000 --debug
 ```
 
 ## Getting Started
 
-1. **Open the application**: Navigate to `http://localhost:5000` in your browser
+1. **Open the application**: Navigate to `http://localhost:8000` in your browser
 
 2. **Customize your experience**:
    - Click the 🌙/☀️ button to switch between light and dark themes
@@ -102,7 +102,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**Connection refused**: Ensure Flask server is running on port 5000
+**Connection refused**: Ensure Flask server is running on port 8000
 
 **Authentication failed**: Verify Access Key and Secret Key are correct for the selected region
 
@@ -115,7 +115,7 @@ Set environment variables for customization:
 ```bash
 export FLASK_ENV=development
 export SESSION_TIMEOUT=1800  # 30 minutes
-export SERVER_PORT=5000
+export SERVER_PORT=8000
 ```
 
 For production, use PostgreSQL by setting:

@@ -67,8 +67,8 @@ export OSC_REGION="eu-west-2"  # or cloudgouv-eu-west-1, us-west-1, us-east-2
 ### Optional Configuration
 
 ```bash
-# Set test server URL (default: http://localhost:5000)
-export TEST_BASE_URL=http://localhost:5000
+# Set test server URL (default: http://localhost:8000)
+export TEST_BASE_URL=http://localhost:8000
 ```
 
 ## Test Behavior
@@ -108,7 +108,7 @@ export TEST_BASE_URL=http://localhost:5000
 
 The following fixtures are available in `conftest.py`:
 
-- `test_base_url`: Base URL for API testing (from `TEST_BASE_URL` env var, default: `http://localhost:5000`)
+- `test_base_url`: Base URL for API testing (from `TEST_BASE_URL` env var, default: `http://localhost:8000`)
 - `test_credentials`: Dictionary with credentials from environment variables
   - Automatically skips test if credentials are missing
   - Returns: `{"access_key": "...", "secret_key": "...", "region": "..."}`

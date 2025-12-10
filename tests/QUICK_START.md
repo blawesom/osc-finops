@@ -40,21 +40,21 @@ export FLASK_ENV=development
 export FLASK_DEBUG=1
 
 # 4. Start server
-python -m flask run --host=0.0.0.0 --port=5000 --debug
+python -m flask run --host=0.0.0.0 --port=8000 --debug
 ```
 
 ## Access the Application
 
 Once the server is running:
-- **Frontend**: http://localhost:5000
-- **Health Check**: http://localhost:5000/health
-- **API Base**: http://localhost:5000/api
+- **Frontend**: http://localhost:8000
+- **Health Check**: http://localhost:8000/health
+- **API Base**: http://localhost:8000/api
 
 ## Test the Setup
 
 ```bash
 # Health check
-curl http://localhost:5000/health
+curl http://localhost:8000/health
 
 # Or use test script (from project root)
 python3 tests/integration/test_health.py
@@ -74,13 +74,13 @@ sudo apt install python3.12-venv
 
 ### Port Already in Use
 
-If port 5000 is busy:
+If port 8000 is busy:
 ```bash
-# Find process using port 5000
-lsof -i :5000
+# Find process using port 8000
+lsof -i :8000
 
 # Kill the process or use different port
-export SERVER_PORT=5001
+export SERVER_PORT=8001
 ```
 
 ### Import Errors
@@ -96,7 +96,7 @@ pip install -r requirements.txt
 
 ## Next Steps
 
-1. Open http://localhost:5000 in your browser
+1. Open http://localhost:8000 in your browser
 2. Test login with valid Outscale credentials
 3. Select a supported region
 4. Verify session management works

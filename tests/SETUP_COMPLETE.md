@@ -52,7 +52,7 @@ export FLASK_ENV=development
 export FLASK_DEBUG=1
 
 # Run
-python -m flask run --host=0.0.0.0 --port=5000 --debug
+python -m flask run --host=0.0.0.0 --port=8000 --debug
 ```
 
 ### Verify Installation
@@ -71,15 +71,15 @@ python3 tests/integration/test_health.py
 
 Once the server is running:
 
-- **Frontend UI**: http://localhost:5000
-- **Health Check**: http://localhost:5000/health
-- **API Base**: http://localhost:5000/api
-- **Login Endpoint**: http://localhost:5000/api/auth/login
+- **Frontend UI**: http://localhost:8000
+- **Health Check**: http://localhost:8000/health
+- **API Base**: http://localhost:8000/api
+- **Login Endpoint**: http://localhost:8000/api/auth/login
 
 ### Testing the Application
 
 1. **Start the server** using one of the methods above
-2. **Open browser** to http://localhost:5000
+2. **Open browser** to http://localhost:8000
 3. **Test login**:
    - Enter Outscale Access Key
    - Enter Outscale Secret Key
@@ -96,10 +96,10 @@ Test the API endpoints with curl:
 
 ```bash
 # Health check
-curl http://localhost:5000/health
+curl http://localhost:8000/health
 
 # Login (replace with your credentials)
-curl -X POST http://localhost:5000/api/auth/login \
+curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "access_key": "YOUR_ACCESS_KEY",
@@ -139,7 +139,7 @@ Configuration is in `backend/config/settings.py`. Key settings:
 
 - **Supported Regions**: cloudgouv-eu-west-1, eu-west-2, us-west-1, us-east-2
 - **Session Timeout**: 30 minutes (1800 seconds)
-- **Server Port**: 5000
+- **Server Port**: 8000
 - **CORS**: Enabled for all origins in development
 
 ### Troubleshooting
@@ -155,7 +155,7 @@ sudo apt install python3-venv
 ./setup.sh
 ```
 
-**Port 5000 in use?**
+**Port 8000 in use?**
 ```bash
 # Use different port
 export SERVER_PORT=5001

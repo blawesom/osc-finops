@@ -26,17 +26,17 @@ pip install -r requirements.txt
 source venv/bin/activate
 export FLASK_APP=backend.app
 export FLASK_ENV=development
-python -m flask run --host=0.0.0.0 --port=5000 --debug
+python -m flask run --host=0.0.0.0 --port=8000 --debug
 ```
 
-The server will be available at: **http://localhost:5000**
+The server will be available at: **http://localhost:8000**
 
 ### 3. Test the Application
 
 #### Health Check
 ```bash
 # In another terminal
-curl http://localhost:5000/health
+curl http://localhost:8000/health
 
 # Or use the test script (from project root)
 python3 tests/integration/test_health.py
@@ -44,7 +44,7 @@ python3 tests/integration/test_health.py
 
 #### Manual Testing
 
-1. **Open Browser**: Navigate to http://localhost:5000
+1. **Open Browser**: Navigate to http://localhost:8000
 
 2. **Test Login**:
    - Enter valid Outscale Access Key
@@ -67,7 +67,7 @@ python3 tests/integration/test_health.py
 
 **Login**:
 ```bash
-curl -X POST http://localhost:5000/api/auth/login \
+curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "access_key": "YOUR_ACCESS_KEY",
@@ -78,12 +78,12 @@ curl -X POST http://localhost:5000/api/auth/login \
 
 **Check Session**:
 ```bash
-curl http://localhost:5000/api/auth/session?session_id=YOUR_SESSION_ID
+curl http://localhost:8000/api/auth/session?session_id=YOUR_SESSION_ID
 ```
 
 **Logout**:
 ```bash
-curl -X POST http://localhost:5000/api/auth/logout \
+curl -X POST http://localhost:8000/api/auth/logout \
   -H "Content-Type: application/json" \
   -H "X-Session-ID: YOUR_SESSION_ID" \
   -d '{"session_id": "YOUR_SESSION_ID"}'
@@ -135,7 +135,7 @@ curl -X POST http://localhost:5000/api/auth/logout \
 ## Troubleshooting
 
 ### Server won't start
-- Check if port 5000 is already in use: `lsof -i :5000`
+- Check if port 8000 is already in use: `lsof -i :8000`
 - Make sure virtual environment is activated
 - Check that all dependencies are installed: `pip list`
 
