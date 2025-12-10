@@ -1,6 +1,5 @@
 """Database package initialization."""
 from backend.config.database import (
-    engine,
     SessionLocal,
     get_db,
     init_db,
@@ -8,7 +7,6 @@ from backend.config.database import (
 )
 
 __all__ = [
-    "engine",
     "SessionLocal",
     "get_db",
     "init_db",

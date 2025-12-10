@@ -4,8 +4,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import StaticPool
 
-from backend.config.settings import FLASK_ENV, FLASK_DEBUG
-
 # Database URL configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///osc_finops.db")
 DATABASE_POOL_SIZE = int(os.getenv("DATABASE_POOL_SIZE", "5"))

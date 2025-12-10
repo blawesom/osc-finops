@@ -2,7 +2,6 @@
 import csv
 import io
 from flask import Blueprint, request, jsonify, Response
-from datetime import datetime
 
 from backend.services.consumption_service import (
     get_consumption,
@@ -15,8 +14,6 @@ from backend.utils.date_validators import validate_date_range
 from backend.config.settings import SUPPORTED_REGIONS
 from backend.utils.errors import APIError
 from backend.middleware.auth_middleware import require_auth
-from backend.database import SessionLocal
-from backend.models.user import User
 
 
 consumption_bp = Blueprint('consumption', __name__)

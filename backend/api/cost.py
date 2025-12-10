@@ -8,9 +8,6 @@ from backend.services.cost_service import get_current_costs
 from backend.config.settings import SUPPORTED_REGIONS
 from backend.utils.errors import APIError
 from backend.middleware.auth_middleware import require_auth
-from backend.database import SessionLocal
-from backend.models.user import User
-from backend.models.session import Session
 
 
 cost_bp = Blueprint('cost', __name__)

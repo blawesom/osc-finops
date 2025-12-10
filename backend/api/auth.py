@@ -1,5 +1,5 @@
 """Authentication API endpoints."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request
 from marshmallow import Schema, fields, ValidationError, validate
 
 from backend.auth.session_manager import session_manager

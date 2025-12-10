@@ -1,6 +1,5 @@
 """Database initialization script."""
-from backend.config.database import init_db, engine
-from backend.database.base import Base
+from backend.config.database import init_db
 from backend.models import User, Session, Quote, QuoteItem, Budget
 
 

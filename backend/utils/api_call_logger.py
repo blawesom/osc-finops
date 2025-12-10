@@ -1,5 +1,4 @@
 """API call logging utilities for osc_sdk_python Gateway."""
-import os
 import json
 import re
 import logging
@@ -16,8 +15,7 @@ from backend.config.settings import (
     LOG_FILE_PATH,
     LOG_MAX_BYTES,
     LOG_BACKUP_COUNT,
-    API_CALLS_LOG_FILE,
-    FLASK_ENV
+    API_CALLS_LOG_FILE
 )
 
 # Try to import log constants from osc_sdk_python

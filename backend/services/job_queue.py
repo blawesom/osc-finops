@@ -3,7 +3,6 @@ import uuid
 import threading
 from typing import Dict, Optional
 from datetime import datetime, timedelta
-from collections import defaultdict
 
 
 class JobQueue:

@@ -1,5 +1,4 @@
 """Flask application entry point."""
-import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 
@@ -7,8 +6,7 @@ from backend.config.settings import (
     FLASK_ENV,
     FLASK_DEBUG,
     SECRET_KEY,
-    CORS_ORIGINS,
-    LOG_LEVEL
+    CORS_ORIGINS
 )
 from backend.api.auth import auth_bp
 from backend.api.catalog import catalog_bp

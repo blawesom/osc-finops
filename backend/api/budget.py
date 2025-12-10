@@ -8,13 +8,10 @@ from backend.services.budget_service import (
     get_budget,
     update_budget,
     delete_budget,
-    calculate_budget_status,
-    get_budget_periods
+    calculate_budget_status
 )
 from backend.utils.errors import APIError
 from backend.middleware.auth_middleware import require_auth
-from backend.database import SessionLocal
-from backend.models.user import User
 from backend.utils.session_helpers import get_user_id_from_session, get_account_id_from_session
 
 

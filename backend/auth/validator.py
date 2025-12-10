@@ -1,6 +1,5 @@
 """Credential and region validation."""
 from typing import Tuple, Optional
-from osc_sdk_python import Gateway
 
 from backend.config.settings import SUPPORTED_REGIONS
 from backend.utils.api_call_logger import create_logged_gateway, process_and_log_api_call

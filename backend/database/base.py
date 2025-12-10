@@ -2,8 +2,6 @@
 from datetime import datetime
 from sqlalchemy import Column, DateTime
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
 
 Base = declarative_base()
 

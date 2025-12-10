@@ -1,6 +1,5 @@
 """Cost calculation service for quotes."""
 from typing import Dict, List, Optional
-from datetime import timedelta
 
 # Constants
 HOURS_PER_DAY = 24

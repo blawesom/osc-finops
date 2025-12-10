@@ -1,6 +1,5 @@
 """Error logging utilities for capturing exceptions with request context."""
 import traceback
-import logging
 from typing import Optional, Dict, Any
 from flask import request, has_request_context
 

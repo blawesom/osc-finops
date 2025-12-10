@@ -1,5 +1,4 @@
 """Catalog service for fetching and caching Outscale catalogs."""
-import time
 import json
 import requests
 from typing import Dict, Optional, List

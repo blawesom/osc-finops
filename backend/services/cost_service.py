@@ -3,10 +3,6 @@ import re
 from typing import Dict, Optional, List
 from datetime import datetime, timedelta
 from collections import defaultdict
-
-from osc_sdk_python import Gateway
-
-from backend.config.settings import CONSUMPTION_CACHE_TTL
 from backend.services.catalog_service import get_catalog
 from backend.utils.api_call_logger import create_logged_gateway, process_and_log_api_call
 

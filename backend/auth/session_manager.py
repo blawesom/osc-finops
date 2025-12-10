@@ -1,13 +1,11 @@
 """Session management with database support."""
 import uuid
-import time
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 from datetime import datetime, timedelta
 
 from backend.config.settings import SESSION_TIMEOUT
 from backend.database import SessionLocal
 from backend.models.session import Session as SessionModel
-from backend.models.user import User
 
 
 class Session:

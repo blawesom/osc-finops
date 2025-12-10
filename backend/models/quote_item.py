@@ -1,6 +1,6 @@
 """QuoteItem model for database."""
 import json
-from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, Text
+from sqlalchemy import Column, String, Float, Integer, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 import uuid

@@ -2,7 +2,6 @@
 from typing import Dict, List, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 from backend.models.quote import Quote
 from backend.models.quote_item import QuoteItem

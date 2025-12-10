@@ -1,5 +1,5 @@
 """Budget model for database."""
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Date, CheckConstraint
+from sqlalchemy import Column, String, Float, ForeignKey, Date, CheckConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 import uuid

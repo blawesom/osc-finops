@@ -2,10 +2,8 @@
 from typing import Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 from backend.models.user import User
-from backend.database import SessionLocal
 
 
 class UserService:

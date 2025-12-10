@@ -1,7 +1,6 @@
 """Trend service for analyzing cost trends over time."""
 from typing import Dict, List, Optional, Callable, Tuple
 from datetime import datetime, timedelta, date
-from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 import time
 
