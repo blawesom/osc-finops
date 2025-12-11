@@ -316,3 +316,4 @@ class TestGetJobStatus:
         assert "progress" in result["data"]
         assert "created_at" in result["data"]
         assert "updated_at" in result["data"]
+

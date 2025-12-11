@@ -149,3 +149,4 @@ class TestGetLogger:
         
         mock_get_logger.assert_called_once_with()
         assert result == mock_logger
+

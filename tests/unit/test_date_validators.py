@@ -252,3 +252,4 @@ class TestValidateDateRange:
         is_valid, error = validate_date_range(from_date, to_date, "day")
         assert is_valid is True
         assert error is None
+

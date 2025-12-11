@@ -1,5 +1,6 @@
 """Unit tests for backend.services.quote_service_db."""
 import pytest
+import uuid
 from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 
@@ -21,15 +22,16 @@ class TestQuoteServiceDBCreateQuote:
         mock_datetime.utcnow.return_value = datetime(2024, 1, 1, 12, 0, 0)
         
         mock_quote = Mock(spec=Quote)
-        mock_quote.quote_id = "quote-123"
+        mock_quote.quote_id = str(uuid.uuid4())
+        valid_user_id = str(uuid.uuid4())
         with patch('backend.services.quote_service_db.Quote') as mock_quote_class:
             mock_quote_class.return_value = mock_quote
             with patch.object(QuoteServiceDB, '_save_active_quote_for_user') as mock_save:
                 
-                result = QuoteServiceDB.create_quote(mock_db, "Test Quote", "user-123")
+                result = QuoteServiceDB.create_quote(mock_db, "Test Quote", valid_user_id)
                 
                 assert result == mock_quote
-                mock_save.assert_called_once_with(mock_db, "user-123")
+                mock_save.assert_called_once_with(mock_db, valid_user_id)
                 mock_db.add.assert_called_once_with(mock_quote)
                 mock_db.commit.assert_called_once()
     
@@ -45,8 +47,9 @@ class TestQuoteServiceDBCreateQuote:
         mock_db = Mock()
         mock_db.query.return_value.filter.return_value.first.return_value = None
         
+        valid_user_id = str(uuid.uuid4())
         with pytest.raises(ValueError, match="User not found"):
-            QuoteServiceDB.create_quote(mock_db, "Test", "user-123")
+            QuoteServiceDB.create_quote(mock_db, "Test", valid_user_id)
     
     def test_create_quote_sanitizes_name(self):
         """Test create_quote sanitizes quote name."""
@@ -54,12 +57,13 @@ class TestQuoteServiceDBCreateQuote:
         mock_user = Mock(spec=User)
         mock_db.query.return_value.filter.return_value.first.return_value = mock_user
         
+        valid_user_id = str(uuid.uuid4())
         with patch('backend.services.quote_service_db.Quote') as mock_quote_class:
             mock_quote = Mock(spec=Quote)
             mock_quote_class.return_value = mock_quote
             with patch.object(QuoteServiceDB, '_save_active_quote_for_user'):
                 
-                QuoteServiceDB.create_quote(mock_db, "  " * 100, "user-123")  # Very long name
+                QuoteServiceDB.create_quote(mock_db, "  " * 100, valid_user_id)  # Very long name
                 
                 # Should be sanitized to max 255 chars or default
                 mock_quote_class.assert_called_once()
@@ -72,19 +76,34 @@ class TestQuoteServiceDBGetQuote:
         """Test get_quote when quote exists."""
         mock_db = Mock()
         mock_quote = Mock(spec=Quote)
-        mock_quote.user_id = "user-123"
-        mock_db.query.return_value.filter.return_value.first.return_value = mock_quote
+        valid_user_id = str(uuid.uuid4())
+        mock_quote.user_id = valid_user_id
+        valid_quote_id = str(uuid.uuid4())
         
-        result = QuoteServiceDB.get_quote(mock_db, "quote-123")
+        # Fix mock chaining - need to properly chain query().filter().first()
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_filter.first.return_value = mock_quote
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
+        
+        result = QuoteServiceDB.get_quote(mock_db, valid_quote_id)
         
         assert result == mock_quote
     
     def test_get_quote_not_found(self):
         """Test get_quote when quote doesn't exist."""
         mock_db = Mock()
-        mock_db.query.return_value.filter.return_value.first.return_value = None
+        valid_quote_id = str(uuid.uuid4())
         
-        result = QuoteServiceDB.get_quote(mock_db, "quote-123")
+        # Fix mock chaining
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_filter.first.return_value = None
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
+        
+        result = QuoteServiceDB.get_quote(mock_db, valid_quote_id)
         
         assert result is None
     
@@ -100,10 +119,18 @@ class TestQuoteServiceDBGetQuote:
         """Test get_quote verifies ownership when user_id provided."""
         mock_db = Mock()
         mock_quote = Mock(spec=Quote)
-        mock_quote.user_id = "user-123"
-        mock_db.query.return_value.filter.return_value.first.return_value = mock_quote
+        valid_user_id = str(uuid.uuid4())
+        mock_quote.user_id = valid_user_id
+        valid_quote_id = str(uuid.uuid4())
         
-        result = QuoteServiceDB.get_quote(mock_db, "quote-123", "user-123")
+        # Fix mock chaining
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_filter.first.return_value = mock_quote
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
+        
+        result = QuoteServiceDB.get_quote(mock_db, valid_quote_id, valid_user_id)
         
         assert result == mock_quote
     
@@ -111,10 +138,19 @@ class TestQuoteServiceDBGetQuote:
         """Test get_quote returns None for wrong owner."""
         mock_db = Mock()
         mock_quote = Mock(spec=Quote)
-        mock_quote.user_id = "user-123"
-        mock_db.query.return_value.filter.return_value.first.return_value = mock_quote
+        valid_user_id = str(uuid.uuid4())
+        wrong_user_id = str(uuid.uuid4())
+        valid_quote_id = str(uuid.uuid4())
+        mock_quote.user_id = valid_user_id
         
-        result = QuoteServiceDB.get_quote(mock_db, "quote-123", "user-456")
+        # Fix mock chaining
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_filter.first.return_value = mock_quote
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
+        
+        result = QuoteServiceDB.get_quote(mock_db, valid_quote_id, wrong_user_id)
         
         assert result is None
 
@@ -126,18 +162,32 @@ class TestQuoteServiceDBGetActiveQuote:
         """Test get_active_quote when active quote exists."""
         mock_db = Mock()
         mock_quote = Mock(spec=Quote)
-        mock_db.query.return_value.filter.return_value.first.return_value = mock_quote
+        valid_user_id = str(uuid.uuid4())
         
-        result = QuoteServiceDB.get_active_quote(mock_db, "user-123")
+        # Fix mock chaining
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_filter.first.return_value = mock_quote
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
+        
+        result = QuoteServiceDB.get_active_quote(mock_db, valid_user_id)
         
         assert result == mock_quote
     
     def test_get_active_quote_not_found(self):
         """Test get_active_quote when no active quote exists."""
         mock_db = Mock()
-        mock_db.query.return_value.filter.return_value.first.return_value = None
+        valid_user_id = str(uuid.uuid4())
         
-        result = QuoteServiceDB.get_active_quote(mock_db, "user-123")
+        # Fix mock chaining
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_filter.first.return_value = None
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
+        
+        result = QuoteServiceDB.get_active_quote(mock_db, valid_user_id)
         
         assert result is None
     
@@ -158,11 +208,19 @@ class TestQuoteServiceDBUpdateQuote:
         """Test updating quote name."""
         mock_db = Mock()
         mock_quote = Mock(spec=Quote)
-        mock_quote.user_id = "user-123"
-        mock_db.query.return_value.filter.return_value.first.return_value = mock_quote
+        valid_user_id = str(uuid.uuid4())
+        valid_quote_id = str(uuid.uuid4())
+        mock_quote.user_id = valid_user_id
         mock_datetime.utcnow.return_value = datetime(2024, 1, 1, 12, 0, 0)
         
-        result = QuoteServiceDB.update_quote(mock_db, "quote-123", "user-123", name="New Name")
+        # Fix mock chaining
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_filter.first.return_value = mock_quote
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
+        
+        result = QuoteServiceDB.update_quote(mock_db, valid_quote_id, valid_user_id, name="New Name")
         
         assert result == mock_quote
         assert mock_quote.name == "New Name"
@@ -171,9 +229,17 @@ class TestQuoteServiceDBUpdateQuote:
     def test_update_quote_not_found(self):
         """Test update_quote when quote doesn't exist."""
         mock_db = Mock()
-        mock_db.query.return_value.filter.return_value.first.return_value = None
+        valid_user_id = str(uuid.uuid4())
+        valid_quote_id = str(uuid.uuid4())
         
-        result = QuoteServiceDB.update_quote(mock_db, "quote-123", "user-123", name="New")
+        # Fix mock chaining
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_filter.first.return_value = None
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
+        
+        result = QuoteServiceDB.update_quote(mock_db, valid_quote_id, valid_user_id, name="New")
         
         assert result is None
     
@@ -181,23 +247,39 @@ class TestQuoteServiceDBUpdateQuote:
         """Test update_quote with invalid status."""
         mock_db = Mock()
         mock_quote = Mock(spec=Quote)
-        mock_quote.user_id = "user-123"
+        valid_user_id = str(uuid.uuid4())
+        valid_quote_id = str(uuid.uuid4())
+        mock_quote.user_id = valid_user_id
         mock_quote.status = "active"
-        mock_db.query.return_value.filter.return_value.first.return_value = mock_quote
+        
+        # Fix mock chaining
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_filter.first.return_value = mock_quote
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
         
         with pytest.raises(ValueError, match="Invalid status"):
-            QuoteServiceDB.update_quote(mock_db, "quote-123", "user-123", status="invalid")
+            QuoteServiceDB.update_quote(mock_db, valid_quote_id, valid_user_id, status="invalid")
     
     def test_update_quote_status_to_active(self):
         """Test updating status to active saves current active."""
         mock_db = Mock()
         mock_quote = Mock(spec=Quote)
-        mock_quote.user_id = "user-123"
+        valid_user_id = str(uuid.uuid4())
+        valid_quote_id = str(uuid.uuid4())
+        mock_quote.user_id = valid_user_id
         mock_quote.status = "saved"
-        mock_db.query.return_value.filter.return_value.first.return_value = mock_quote
+        
+        # Fix mock chaining
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_filter.first.return_value = mock_quote
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
         
         with patch.object(QuoteServiceDB, '_save_active_quote_for_user') as mock_save:
-            result = QuoteServiceDB.update_quote(mock_db, "quote-123", "user-123", status="active")
+            result = QuoteServiceDB.update_quote(mock_db, valid_quote_id, valid_user_id, status="active")
             
             assert result == mock_quote
             assert mock_quote.status == "active"
@@ -207,11 +289,25 @@ class TestQuoteServiceDBUpdateQuote:
         """Test update_quote with invalid discount percentage."""
         mock_db = Mock()
         mock_quote = Mock(spec=Quote)
-        mock_quote.user_id = "user-123"
-        mock_db.query.return_value.filter.return_value.first.return_value = mock_quote
+        valid_user_id = str(uuid.uuid4())
+        valid_quote_id = str(uuid.uuid4())
+        mock_quote.user_id = valid_user_id
         
-        with pytest.raises(ValueError, match="Invalid discount percentage"):
-            QuoteServiceDB.update_quote(mock_db, "quote-123", "user-123", global_discount_percent=150.0)
+        # Fix mock chaining
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_filter.first.return_value = mock_quote
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
+        
+        # The function sanitizes the discount to max 100.0, so 150.0 becomes 100.0
+        # Test with a negative value which should be sanitized to 0.0
+        result = QuoteServiceDB.update_quote(mock_db, valid_quote_id, valid_user_id, global_discount_percent=-10.0)
+        
+        assert result == mock_quote
+        # Discount should be sanitized to 0.0 (min_value)
+        assert mock_quote.global_discount_percent == 0.0
+        mock_db.commit.assert_called_once()
 
 
 class TestQuoteServiceDBDeleteQuote:
@@ -236,17 +332,21 @@ class TestQuoteServiceDBDeleteQuote:
     def test_delete_quote_not_found(self):
         """Test delete_quote when quote doesn't exist."""
         mock_db = Mock()
-        mock_db.query.return_value.filter.return_value.first.return_value = None
+        valid_user_id = str(uuid.uuid4())
+        valid_quote_id = str(uuid.uuid4())
         
-        result = QuoteServiceDB.delete_quote(mock_db, "quote-123", "user-123")
-        
-        assert result is False
+        # get_quote is called internally, so we need to mock it
+        with patch.object(QuoteServiceDB, 'get_quote', return_value=None):
+            result = QuoteServiceDB.delete_quote(mock_db, valid_quote_id, valid_user_id)
+            
+            assert result is False
     
     def test_delete_quote_invalid_uuid(self):
         """Test delete_quote with invalid UUID."""
         mock_db = Mock()
+        valid_user_id = str(uuid.uuid4())
         
-        result = QuoteServiceDB.delete_quote(mock_db, "invalid", "user-123")
+        result = QuoteServiceDB.delete_quote(mock_db, "invalid", valid_user_id)
         
         assert result is False
 

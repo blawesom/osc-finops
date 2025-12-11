@@ -114,3 +114,4 @@ class TestBaseModel:
         
         # The actual implementation will be tested through concrete model tests
         # This is just a structural test
+

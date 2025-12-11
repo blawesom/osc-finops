@@ -53,3 +53,4 @@ class TestBudgetWorkflow:
             status = "exceeded"
         
         assert status == "on_track"
+

@@ -437,3 +437,4 @@ class TestProcessAndLogApiCall:
         # Verify kwargs were passed to log_api_call
         call_args = mock_log_api.call_args
         assert call_args[1]["custom_param"] == "value"
+

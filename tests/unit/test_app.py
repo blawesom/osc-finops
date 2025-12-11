@@ -208,3 +208,4 @@ class TestTeardownHandler:
                     # Teardown should be called when context exits
                     # Note: This is hard to test directly, but we can verify close_db is imported
                     assert hasattr(app, 'teardown_appcontext_funcs')
+

@@ -368,7 +368,7 @@ class TestCalculateBudgetStatus:
                 }
             ]
             
-            with patch('backend.services.budget_service.calculate_monthly_weeks') as mock_weeks:
+            with patch('backend.services.consumption_service.calculate_monthly_weeks') as mock_weeks:
                 # Mock weekly periods for monthly budget
                 mock_weeks.return_value = [
                     {"from_date": "2024-01-01", "to_date": "2024-01-08"},

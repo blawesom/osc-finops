@@ -1024,43 +1024,52 @@ class TestTrendServiceEdgeCases:
     """Edge case tests for trend service."""
     
     def test_trend_job_with_large_date_range(self):
-        """Test trend job with large date range."""
-        from backend.services.trend_service import create_trend_job
-        
-        # Test with 1 year range
-        job = create_trend_job(
-            user_id="user-123",
-            from_date="2024-01-01",
-            to_date="2024-12-31",
-            granularity="month"
-        )
-        
-        assert job is not None
-        assert job["granularity"] == "month"
+        """Test trend calculation with large date range."""
+        # Test that calculate_trends_async can handle large date ranges
+        with patch('backend.services.trend_service.get_consumption') as mock_get_consumption:
+            mock_get_consumption.return_value = {
+                "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
+                "currency": "EUR"
+            }
+            
+            result = calculate_trends_async(
+                "job-123", "access_key", "secret_key", "eu-west-2", "account-123",
+                "2024-01-01", "2024-12-31", granularity="month"
+            )
+            
+            assert result is not None
+            assert result["granularity"] == "month"
     
     def test_trend_job_with_single_day(self):
-        """Test trend job with single day range."""
-        from backend.services.trend_service import create_trend_job
-        
-        job = create_trend_job(
-            user_id="user-123",
-            from_date="2024-01-01",
-            to_date="2024-01-01",
-            granularity="day"
-        )
-        
-        assert job is not None
-        assert job["granularity"] == "day"
+        """Test trend calculation with single day range."""
+        with patch('backend.services.trend_service.get_consumption') as mock_get_consumption:
+            mock_get_consumption.return_value = {
+                "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
+                "currency": "EUR"
+            }
+            
+            result = calculate_trends_async(
+                "job-123", "access_key", "secret_key", "eu-west-2", "account-123",
+                "2024-01-01", "2024-01-01", granularity="day"
+            )
+            
+            assert result is not None
+            assert result["granularity"] == "day"
     
     def test_trend_job_handles_missing_optional_params(self):
-        """Test trend job creation with missing optional parameters."""
-        from backend.services.trend_service import create_trend_job
-        
-        job = create_trend_job(
-            user_id="user-123",
-            from_date="2024-01-01",
-            to_date="2024-01-31"
-        )
-        
-        assert job is not None
-        # Should use defaults for optional params
+        """Test trend calculation with default granularity."""
+        with patch('backend.services.trend_service.get_consumption') as mock_get_consumption:
+            mock_get_consumption.return_value = {
+                "entries": [{"UnitPrice": 10.0, "Value": 10.0}],
+                "currency": "EUR"
+            }
+            
+            # Test with default granularity (should default to "day")
+            result = calculate_trends_async(
+                "job-123", "access_key", "secret_key", "eu-west-2", "account-123",
+                "2024-01-01", "2024-01-31"
+            )
+            
+            assert result is not None
+            # Should use default granularity
+            assert "granularity" in result

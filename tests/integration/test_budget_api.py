@@ -577,3 +577,4 @@ class TestGetBudgetStatus:
         )
         
         assert response.status_code == 401
+

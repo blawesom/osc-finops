@@ -372,3 +372,4 @@ class TestExportConsumption:
         response = requests.get(url, params=params, timeout=10)
         
         assert response.status_code == 401
+

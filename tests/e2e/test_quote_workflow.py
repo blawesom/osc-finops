@@ -143,3 +143,4 @@ class TestQuoteWorkflow:
         assert "Value" in first_entry
         assert "FromDate" in first_entry
         assert "ToDate" in first_entry
+

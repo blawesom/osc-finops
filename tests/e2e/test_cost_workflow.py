@@ -123,3 +123,4 @@ class TestCostAnalysisWorkflow:
         aggregation = aggregate_by_resource_type(resources)
         assert "Vm" in aggregation
         assert "Volume" in aggregation
+

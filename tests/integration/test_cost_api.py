@@ -259,3 +259,4 @@ class TestExportCost:
         response = requests.get(url, timeout=10)
         
         assert response.status_code == 401
+

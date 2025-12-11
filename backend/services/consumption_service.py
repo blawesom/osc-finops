@@ -389,6 +389,7 @@ def filter_consumption(
         ]
     
     # Ensure region is included in each filtered entry
+    data_region = consumption_data.get("region", "")
     for entry in filtered_entries:
         if "Region" not in entry and "region" not in entry:
             entry["Region"] = data_region

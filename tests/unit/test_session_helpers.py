@@ -245,3 +245,4 @@ class TestGetAccountIdFromSession:
                 assert result == test_account_id
                 # Verify close was called
                 assert mock_db.close.call_count == 1
+

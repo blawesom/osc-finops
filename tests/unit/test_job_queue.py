@@ -516,3 +516,4 @@ class TestThreadSafety:
             assert job is not None
             assert job["status"] == "processing"
             assert job["progress"] == 50
+

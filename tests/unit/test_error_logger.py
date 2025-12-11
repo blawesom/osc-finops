@@ -296,3 +296,4 @@ class TestLogErrorMessage:
         with patch('sys.stderr'):
             log_error_message(message)
             # Should attempt to write to stderr as fallback
+

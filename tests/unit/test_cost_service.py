@@ -1527,3 +1527,4 @@ class TestGetCurrentCosts:
         mock_cache.set.assert_called_once()
         call_args = mock_cache.set.call_args[0]
         assert call_args[2] == True  # include_oos parameter
+

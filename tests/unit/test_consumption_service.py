@@ -704,8 +704,7 @@ class TestConsumptionServiceWithFixtures:
                     "eu-west-2",
                     "account-123",
                     "2025-12-01",
-                    "2025-12-02",
-                    granularity="day"
+                    "2025-12-02"
                 )
                 
                 assert result is not None
@@ -734,14 +733,14 @@ class TestConsumptionServiceWithFixtures:
         if not formatted_consumption_data:
             pytest.skip("Consumption fixture not available")
         
-        # Aggregate by resource type
+        # aggregate_by_dimension expects a Dict with "entries" key, not a list
         aggregated = aggregate_by_dimension(
-            formatted_consumption_data["entries"],
+            formatted_consumption_data,  # Pass the full dict, not just entries
             "resource_type"
         )
         
         assert len(aggregated) > 0
-        # Each aggregated entry should have a resource_type
+        # Each aggregated entry should have a resource_type or Type
         for entry in aggregated:
             assert "resource_type" in entry or "Type" in entry
     
@@ -750,12 +749,13 @@ class TestConsumptionServiceWithFixtures:
         if not formatted_consumption_data:
             pytest.skip("Consumption fixture not available")
         
-        # Filter by service
+        # filter_consumption expects a Dict with "entries" key, not a list
         filtered = filter_consumption(
-            formatted_consumption_data["entries"],
+            formatted_consumption_data,  # Pass the full dict, not just entries
             service="TinaOS-FCU"
         )
         
         # All entries should match the filter
-        for entry in filtered:
+        entries = filtered.get("entries", [])
+        for entry in entries:
             assert entry.get("Service", "") == "TinaOS-FCU"
