@@ -247,6 +247,97 @@ const QuoteService = {
             console.error('Delete quote error:', error);
             throw error;
         }
+    },
+    
+    /**
+     * Create a group for a quote
+     */
+    async createGroup(quoteId, name) {
+        try {
+            const response = await fetch(`${this.API_BASE}/quotes/${quoteId}/groups`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ name })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                return data.data;
+            } else {
+                throw new Error(data.error?.message || 'Failed to create group');
+            }
+        } catch (error) {
+            console.error('Create group error:', error);
+            throw error;
+        }
+    },
+    
+    /**
+     * Update a group's name
+     */
+    async updateGroup(quoteId, groupId, name) {
+        try {
+            const response = await fetch(`${this.API_BASE}/quotes/${quoteId}/groups/${groupId}`, {
+                method: 'PUT',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ name })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                return data.data;
+            } else {
+                throw new Error(data.error?.message || 'Failed to update group');
+            }
+        } catch (error) {
+            console.error('Update group error:', error);
+            throw error;
+        }
+    },
+    
+    /**
+     * Delete a group
+     */
+    async deleteGroup(quoteId, groupId) {
+        try {
+            const response = await fetch(`${this.API_BASE}/quotes/${quoteId}/groups/${groupId}`, {
+                method: 'DELETE',
+                headers: this.getHeaders()
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                return data;
+            } else {
+                throw new Error(data.error?.message || 'Failed to delete group');
+            }
+        } catch (error) {
+            console.error('Delete group error:', error);
+            throw error;
+        }
+    },
+    
+    /**
+     * Assign an item to a group (or ungroup if groupId is null)
+     */
+    async assignItemToGroup(quoteId, itemId, groupId) {
+        try {
+            const response = await fetch(`${this.API_BASE}/quotes/${quoteId}/items/${itemId}/group`, {
+                method: 'PUT',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ group_id: groupId })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                return data.data;
+            } else {
+                throw new Error(data.error?.message || 'Failed to assign item to group');
+            }
+        } catch (error) {
+            console.error('Assign item to group error:', error);
+            throw error;
+        }
     }
 };
 
