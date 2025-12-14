@@ -652,3 +652,126 @@ class TestQuoteServiceDBLoadQuote:
             mock_save.assert_not_called()  # Should not save if already active
             mock_get_quote.assert_called_once_with(mock_db, valid_uuid, valid_uuid)
 
+
+class TestQuoteServiceDBGroups:
+    """Tests for QuoteServiceDB group methods."""
+    
+    @patch('backend.services.quote_service_db.datetime')
+    def test_create_group_success(self, mock_datetime):
+        """Test successful group creation."""
+        mock_db = Mock()
+        mock_datetime.utcnow.return_value = datetime(2024, 1, 1, 12, 0, 0)
+        
+        quote_id = str(uuid.uuid4())
+        user_id = str(uuid.uuid4())
+        quote = Mock()
+        quote.quote_id = quote_id
+        
+        with patch.object(QuoteServiceDB, 'get_quote') as mock_get_quote:
+            mock_get_quote.return_value = quote
+            
+            # Mock max_order query
+            mock_db.query.return_value.filter.return_value.order_by.return_value.first.return_value = (5,)
+            
+            with patch('backend.services.quote_service_db.QuoteGroup') as mock_group_class:
+                mock_group = Mock()
+                mock_group_class.from_dict.return_value = mock_group
+                
+                result = QuoteServiceDB.create_group(mock_db, quote_id, "Test Group", user_id)
+                
+                assert result == mock_group
+                mock_db.add.assert_called_once_with(mock_group)
+                mock_db.commit.assert_called_once()
+    
+    def test_create_group_invalid_quote_id(self):
+        """Test create_group with invalid quote_id."""
+        mock_db = Mock()
+        
+        result = QuoteServiceDB.create_group(mock_db, "invalid-uuid", "Test Group")
+        
+        assert result is None
+    
+    def test_create_group_quote_not_found(self):
+        """Test create_group when quote not found."""
+        mock_db = Mock()
+        quote_id = str(uuid.uuid4())
+        
+        with patch.object(QuoteServiceDB, 'get_quote') as mock_get_quote:
+            mock_get_quote.return_value = None
+            
+            result = QuoteServiceDB.create_group(mock_db, quote_id, "Test Group")
+            
+            assert result is None
+    
+    @patch('backend.services.quote_service_db.datetime')
+    def test_update_group_success(self, mock_datetime):
+        """Test successful group update."""
+        mock_db = Mock()
+        mock_datetime.utcnow.return_value = datetime(2024, 1, 1, 12, 0, 0)
+        
+        quote_id = str(uuid.uuid4())
+        group_id = str(uuid.uuid4())
+        user_id = str(uuid.uuid4())
+        quote = Mock()
+        group = Mock()
+        
+        with patch.object(QuoteServiceDB, 'get_quote') as mock_get_quote:
+            mock_get_quote.return_value = quote
+            
+            mock_db.query.return_value.filter.return_value.first.return_value = group
+            
+            result = QuoteServiceDB.update_group(mock_db, quote_id, group_id, "Updated Name", user_id)
+            
+            assert result == group
+            assert group.name == "Updated Name"
+            mock_db.commit.assert_called_once()
+    
+    def test_update_group_not_found(self):
+        """Test update_group when group not found."""
+        mock_db = Mock()
+        quote_id = str(uuid.uuid4())
+        group_id = str(uuid.uuid4())
+        quote = Mock()
+        
+        with patch.object(QuoteServiceDB, 'get_quote') as mock_get_quote:
+            mock_get_quote.return_value = quote
+            mock_db.query.return_value.filter.return_value.first.return_value = None
+            
+            result = QuoteServiceDB.update_group(mock_db, quote_id, group_id, "Updated Name")
+            
+            assert result is None
+    
+    def test_delete_group_success(self):
+        """Test successful group deletion."""
+        mock_db = Mock()
+        quote_id = str(uuid.uuid4())
+        group_id = str(uuid.uuid4())
+        user_id = str(uuid.uuid4())
+        quote = Mock()
+        group = Mock()
+        
+        with patch.object(QuoteServiceDB, 'get_quote') as mock_get_quote:
+            mock_get_quote.return_value = quote
+            mock_db.query.return_value.filter.return_value.first.return_value = group
+            
+            result = QuoteServiceDB.delete_group(mock_db, quote_id, group_id, user_id)
+            
+            assert result is True
+            mock_db.delete.assert_called_once_with(group)
+            mock_db.commit.assert_called_once()
+    
+    def test_delete_group_not_found(self):
+        """Test delete_group when group not found."""
+        mock_db = Mock()
+        quote_id = str(uuid.uuid4())
+        group_id = str(uuid.uuid4())
+        quote = Mock()
+        
+        with patch.object(QuoteServiceDB, 'get_quote') as mock_get_quote:
+            mock_get_quote.return_value = quote
+            mock_db.query.return_value.filter.return_value.first.return_value = None
+            
+            result = QuoteServiceDB.delete_group(mock_db, quote_id, group_id)
+            
+            assert result is False
+

@@ -8,6 +8,7 @@ from backend.models.session import Session as SessionModel
 from backend.models.user import User
 from backend.models.quote import Quote
 from backend.models.quote_item import QuoteItem
+from backend.models.quote_group import QuoteGroup
 from backend.models.budget import Budget
 from backend.config.settings import SESSION_TIMEOUT
 
@@ -897,4 +898,110 @@ class TestSessionModelEnhanced:
         repr_str = repr(session)
         assert "Session" in repr_str
         assert session.user_id in repr_str
+
+
+class TestQuoteGroupModel:
+    """Tests for QuoteGroup model."""
+    
+    def test_quote_group_init(self):
+        """Test QuoteGroup initialization."""
+        quote_id = str(uuid.uuid4())
+        group_id = str(uuid.uuid4())
+        group = QuoteGroup(
+            group_id=group_id,
+            quote_id=quote_id,
+            name="Test Group",
+            display_order=0
+        )
+        
+        assert group.group_id == group_id
+        assert group.quote_id == quote_id
+        assert group.name == "Test Group"
+        assert group.display_order == 0
+    
+    def test_quote_group_to_dict(self):
+        """Test QuoteGroup to_dict method."""
+        quote_id = str(uuid.uuid4())
+        group = QuoteGroup(
+            quote_id=quote_id,
+            name="Test Group",
+            display_order=1
+        )
+        
+        data = group.to_dict()
+        
+        assert data["group_id"] == group.group_id
+        assert data["quote_id"] == quote_id
+        assert data["name"] == "Test Group"
+        assert data["display_order"] == 1
+        assert "created_at" in data
+        assert "updated_at" in data
+    
+    def test_quote_group_from_dict_valid(self):
+        """Test QuoteGroup from_dict with valid data."""
+        quote_id = str(uuid.uuid4())
+        group_id = str(uuid.uuid4())
+        
+        group = QuoteGroup.from_dict({
+            "group_id": group_id,
+            "name": "Test Group",
+            "display_order": 2
+        }, quote_id)
+        
+        assert group.group_id == group_id
+        assert group.quote_id == quote_id
+        assert group.name == "Test Group"
+        assert group.display_order == 2
+    
+    def test_quote_group_from_dict_invalid_quote_id(self):
+        """Test QuoteGroup from_dict with invalid quote_id."""
+        with pytest.raises(ValueError, match="Invalid quote_id format"):
+            QuoteGroup.from_dict({"name": "Test"}, "invalid-uuid")
+    
+    def test_quote_group_from_dict_defaults(self):
+        """Test QuoteGroup from_dict with defaults."""
+        quote_id = str(uuid.uuid4())
+        
+        group = QuoteGroup.from_dict({}, quote_id)
+        
+        assert group.quote_id == quote_id
+        assert group.name == "New Group"  # Default name
+        assert group.display_order == 0
+        assert group.group_id is not None  # Auto-generated
+    
+    def test_quote_group_from_dict_sanitizes_name(self):
+        """Test QuoteGroup from_dict sanitizes name."""
+        quote_id = str(uuid.uuid4())
+        
+        # Test with empty name
+        group = QuoteGroup.from_dict({"name": ""}, quote_id)
+        assert group.name == "New Group"
+        
+        # Test with very long name
+        long_name = "a" * 300
+        group = QuoteGroup.from_dict({"name": long_name}, quote_id)
+        assert len(group.name) <= 255
+    
+    def test_quote_group_from_dict_negative_display_order(self):
+        """Test QuoteGroup from_dict handles negative display_order."""
+        quote_id = str(uuid.uuid4())
+        
+        group = QuoteGroup.from_dict({"display_order": -5}, quote_id)
+        assert group.display_order == 0  # Should be clamped to 0
+    
+    def test_quote_group_repr(self):
+        """Test QuoteGroup __repr__ method."""
+        quote_id = str(uuid.uuid4())
+        group_id = str(uuid.uuid4())
+        group = QuoteGroup(
+            group_id=group_id,
+            quote_id=quote_id,
+            name="Test Group"
+        )
+        
+        repr_str = repr(group)
+        assert "QuoteGroup" in repr_str
+        assert group.group_id in repr_str
+        assert "Test Group" in repr_str
+        assert quote_id in repr_str
 

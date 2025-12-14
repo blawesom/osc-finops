@@ -66,6 +66,15 @@ class TestQuoteWorkflow:
         """Test complete quote workflow: create → add items → calculate → export → delete."""
         import requests
         
+        # Check if server is available
+        try:
+            requests.get(f"{test_base_url}/health", timeout=2)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            pytest.skip(
+                "Server not available. Start server with: ./start.sh or "
+                "python -m flask --app backend.app run"
+            )
+        
         # Setup mocks
         if catalog_data:
             # Transform catalog fixture to expected format
