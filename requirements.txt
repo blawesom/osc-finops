@@ -56,3 +56,6 @@ cryptography>=41.0.0
 # Database
 sqlalchemy>=2.0.0
 
+# Production dependencies
+gunicorn>=21.2.0
+gevent>=23.9.0
