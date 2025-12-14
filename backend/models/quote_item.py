@@ -24,9 +24,11 @@ class QuoteItem(BaseModel):
     parameters = Column(Text, nullable=True)  # JSON stored as TEXT
     iops_unit_price = Column(Float, nullable=True)
     display_order = Column(Integer, default=0, nullable=False)
+    group_id = Column(UUID(as_uuid=False), ForeignKey("quote_groups.group_id", ondelete="SET NULL"), nullable=True, index=True)
     
-    # Relationship
+    # Relationships
     quote = relationship("Quote", back_populates="items")
+    group = relationship("QuoteGroup", back_populates="items")
     
     def __repr__(self):
         return f"<QuoteItem(item_id={self.item_id}, resource_name={self.resource_name})>"
@@ -70,7 +72,8 @@ class QuoteItem(BaseModel):
             "region": self.region,
             "parameters": self.get_parameters(),
             "iops_unit_price": self.iops_unit_price,
-            "display_order": self.display_order
+            "display_order": self.display_order,
+            "group_id": self.group_id
         }
     
     @classmethod

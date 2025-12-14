@@ -23,6 +23,7 @@ class Quote(BaseModel):
     # Relationships
     user = relationship("User", back_populates="quotes")
     items = relationship("QuoteItem", back_populates="quote", cascade="all, delete-orphan", order_by="QuoteItem.display_order")
+    groups = relationship("QuoteGroup", back_populates="quote", cascade="all, delete-orphan", order_by="QuoteGroup.display_order")
     
     # Constraints
     __table_args__ = (
@@ -41,6 +42,9 @@ class Quote(BaseModel):
         # Convert items to dict format for calculation
         items_dict = [item.to_dict() for item in self.items]
         
+        # Convert groups to dict format
+        groups_dict = [group.to_dict() for group in self.groups]
+        
         # Calculate totals
         calculation = calculate_quote_total(
             items_dict,
@@ -56,6 +60,7 @@ class Quote(BaseModel):
             "status": self.status,
             "user_id": self.user_id,
             "items": items_dict,
+            "groups": groups_dict,
             "duration": self.duration,
             "duration_unit": self.duration_unit,
             "commitment_period": self.commitment_period,
