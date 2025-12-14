@@ -20,7 +20,18 @@ SESSION_COOKIE_SAMESITE: str = "Lax"
 # Flask configuration
 FLASK_ENV: str = os.getenv("FLASK_ENV", "development")
 FLASK_DEBUG: bool = os.getenv("FLASK_DEBUG", "1") == "1"
-SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+
+# SECRET_KEY: In production, this MUST be set via environment variable
+# Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
+if FLASK_ENV == "production":
+    SECRET_KEY: str = os.getenv("SECRET_KEY")
+    if not SECRET_KEY:
+        raise ValueError(
+            "SECRET_KEY environment variable is required in production. "
+            "Generate one with: python3 -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+else:
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 
 # Server configuration
 SERVER_HOST: str = os.getenv("SERVER_HOST", "0.0.0.0")
