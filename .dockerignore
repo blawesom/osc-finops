@@ -1,0 +1,108 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+.venv*/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+.cursor/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Test files
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.json
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.local
+
+# Credentials and secrets
+*.key
+*.pem
+*.credentials
+*.secret
+*.access_key
+*.secret_key
+credentials.json
+
+# Cache
+.cache/
+backend/cache/
+sessions/
+session_data/
+
+# Exports
+exports/
+*.csv
+*.pdf
+*.ods
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Development scripts
+setup.sh
+start.sh
+start_dev.sh
+run_dev.py
+define/
