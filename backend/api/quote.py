@@ -112,16 +112,26 @@ def update_quote(quote_id):
     
     db = SessionLocal()
     try:
+        # Build update kwargs, only including fields that are provided (not None)
+        update_kwargs = {}
+        if 'name' in data:
+            update_kwargs['name'] = data['name']
+        if 'status' in data and data['status'] is not None:
+            update_kwargs['status'] = data['status']
+        if 'duration' in data:
+            update_kwargs['duration'] = data['duration']
+        if 'duration_unit' in data:
+            update_kwargs['duration_unit'] = data['duration_unit']
+        if 'commitment_period' in data:
+            update_kwargs['commitment_period'] = data['commitment_period']
+        if 'global_discount_percent' in data:
+            update_kwargs['global_discount_percent'] = data['global_discount_percent']
+        
         quote = QuoteServiceDB.update_quote(
             db,
             quote_id,
             user_id=user_id,
-            name=data.get('name'),
-            status=data.get('status'),
-            duration=data.get('duration'),
-            duration_unit=data.get('duration_unit'),
-            commitment_period=data.get('commitment_period'),
-            global_discount_percent=data.get('global_discount_percent')
+            **update_kwargs
         )
         
         if not quote:
@@ -318,6 +328,140 @@ def export_quote_csv(quote_id):
             mimetype='text/csv',
             headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
+    finally:
+        db.close()
+
+
+@quote_bp.route('/quotes/<quote_id>/groups', methods=['POST'])
+@require_auth
+def create_group(quote_id):
+    """
+    Create a new group for a quote.
+    Requires authentication.
+    Verifies ownership.
+    """
+    user_id = get_user_id_from_session()
+    if not user_id:
+        raise APIError("Authentication required", status_code=401)
+    
+    data = request.get_json() or {}
+    name = data.get('name', 'New Group')
+    
+    db = SessionLocal()
+    try:
+        group = QuoteServiceDB.create_group(db, quote_id, name, user_id)
+        if not group:
+            raise APIError("Quote not found", status_code=404)
+        
+        return jsonify({
+            "success": True,
+            "data": group.to_dict()
+        }), 201
+    except ValueError as e:
+        raise APIError(str(e), status_code=400)
+    except Exception as e:
+        raise APIError(f"Failed to create group: {str(e)}", status_code=500)
+    finally:
+        db.close()
+
+
+@quote_bp.route('/quotes/<quote_id>/groups/<group_id>', methods=['PUT'])
+@require_auth
+def update_group(quote_id, group_id):
+    """
+    Update a group's name.
+    Requires authentication.
+    Verifies ownership.
+    """
+    user_id = get_user_id_from_session()
+    if not user_id:
+        raise APIError("Authentication required", status_code=401)
+    
+    data = request.get_json() or {}
+    name = data.get('name')
+    
+    if not name:
+        raise APIError("Group name is required", status_code=400)
+    
+    db = SessionLocal()
+    try:
+        group = QuoteServiceDB.update_group(db, quote_id, group_id, name, user_id)
+        if not group:
+            raise APIError("Quote or group not found", status_code=404)
+        
+        return jsonify({
+            "success": True,
+            "data": group.to_dict()
+        }), 200
+    except ValueError as e:
+        raise APIError(str(e), status_code=400)
+    except Exception as e:
+        db.rollback()
+        raise APIError(f"Failed to update group: {str(e)}", status_code=500)
+    finally:
+        db.close()
+
+
+@quote_bp.route('/quotes/<quote_id>/groups/<group_id>', methods=['DELETE'])
+@require_auth
+def delete_group(quote_id, group_id):
+    """
+    Delete a group.
+    Requires authentication.
+    Verifies ownership.
+    Items in the group will be moved to ungrouped (group_id = NULL).
+    """
+    user_id = get_user_id_from_session()
+    if not user_id:
+        raise APIError("Authentication required", status_code=401)
+    
+    db = SessionLocal()
+    try:
+        success = QuoteServiceDB.delete_group(db, quote_id, group_id, user_id)
+        if not success:
+            raise APIError("Quote or group not found", status_code=404)
+        
+        return jsonify({
+            "success": True,
+            "message": "Group deleted"
+        }), 200
+    except Exception as e:
+        db.rollback()
+        raise APIError(f"Failed to delete group: {str(e)}", status_code=500)
+    finally:
+        db.close()
+
+
+@quote_bp.route('/quotes/<quote_id>/items/<item_id>/group', methods=['PUT'])
+@require_auth
+def assign_item_to_group(quote_id, item_id):
+    """
+    Assign an item to a group (or ungroup if group_id is None).
+    Requires authentication.
+    Verifies ownership.
+    """
+    user_id = get_user_id_from_session()
+    if not user_id:
+        raise APIError("Authentication required", status_code=401)
+    
+    data = request.get_json() or {}
+    group_id = data.get('group_id')  # Can be None to ungroup
+    
+    db = SessionLocal()
+    try:
+        quote = QuoteServiceDB.assign_item_to_group(db, quote_id, item_id, group_id, user_id)
+        if not quote:
+            raise APIError("Quote, item, or group not found", status_code=404)
+        
+        return jsonify({
+            "success": True,
+            "data": quote.to_dict()
+        }), 200
+    except ValueError as e:
+        raise APIError(str(e), status_code=400)
+    except Exception as e:
+        db.rollback()
+        raise APIError(f"Failed to assign item to group: {str(e)}", status_code=500)
     finally:
         db.close()
 
