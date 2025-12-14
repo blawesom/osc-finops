@@ -1,0 +1,37 @@
+[Unit]
+Description=OSC-FinOps Production Service
+After=network.target
+
+[Service]
+Type=notify
+User=osc-finops
+Group=osc-finops
+WorkingDirectory=/opt/osc-finops
+Environment="PATH=/opt/osc-finops/venv/bin"
+EnvironmentFile=/etc/osc-finops/production.env
+ExecStart=/opt/osc-finops/venv/bin/gunicorn \
+    --bind 0.0.0.0:8000 \
+    --workers 4 \
+    --threads 2 \
+    --timeout 120 \
+    --access-logfile /var/log/osc-finops/access.log \
+    --error-logfile /var/log/osc-finops/error.log \
+    --log-level info \
+    --preload \
+    backend.app:create_app()
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=osc-finops
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/osc-finops/data /opt/osc-finops/logs /var/log/osc-finops
+
+[Install]
+WantedBy=multi-user.target
