@@ -369,6 +369,117 @@ body {
     overflow-x: auto;
 }
 
+/* Parameter Input Styles */
+.parameter-container {
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-md);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+}
+
+.parameter-input-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.parameter-input-group label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.parameter-input {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-base);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+.parameter-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
+}
+
+.help-text {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+    font-style: italic;
+}
+
+/* Group Management Styles */
+.group-header {
+    background-color: var(--bg-tertiary);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.group-header:hover {
+    background-color: var(--bg-secondary);
+}
+
+.group-name-editable {
+    cursor: text;
+    user-select: none;
+}
+
+.group-name-editable:hover {
+    text-decoration: underline;
+}
+
+.inline-delete-btn {
+    background: transparent;
+    border: none;
+    color: var(--danger-color);
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    border-radius: var(--border-radius);
+}
+
+.inline-delete-btn:hover {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.group-display {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Drag-and-Drop Styles */
+.draggable-item {
+    cursor: move;
+    transition: opacity 0.2s;
+}
+
+.draggable-item.dragging {
+    opacity: 0.5;
+}
+
+.drop-zone {
+    transition: background-color 0.2s;
+}
+
+.drop-zone.drag-over {
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+    border: 2px dashed var(--primary-color);
+}
+
+.create-group-zone {
+    border: 2px dashed var(--border-color);
+    background-color: var(--bg-tertiary);
+}
+
+.create-group-zone.drag-over {
+    border-color: var(--primary-color);
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+
 .quote-table {
     width: 100%;
     border-collapse: collapse;

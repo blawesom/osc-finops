@@ -135,15 +135,16 @@
                                     </div>
                                     
                                     <div class="form-group">
-                                        <label for="resource-quantity" data-i18n="quotes.quantity">Quantity</label>
-                                        <input type="number" id="resource-quantity" min="1" value="1" step="1">
-                                    </div>
-                                    
-                                    <div class="form-group">
                                         <label data-i18n="quotes.unitPrice">Unit Price</label>
                                         <div id="resource-unit-price" class="unit-price-display">-</div>
                                     </div>
-                                    
+                                </div>
+                                
+                                <!-- Dynamic Parameter Inputs -->
+                                <div id="parameter-container" class="parameter-container"></div>
+                                <div id="parameter-help-text" class="help-text" style="display: none;"></div>
+                                
+                                <div class="form-row">
                                     <div class="form-group">
                                         <label>&nbsp;</label>
                                         <button id="add-resource-btn" class="btn btn-primary" disabled data-i18n="quotes.addToQuote">Add to Quote</button>
@@ -154,21 +155,28 @@
                         
                         <!-- Quote Items -->
                         <section class="quote-section">
-                            <h2 data-i18n="quotes.items">Quote Items</h2>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h2 style="margin: 0;" data-i18n="quotes.items">Quote Items</h2>
+                                <button id="new-group-btn" class="btn btn-secondary" data-i18n="quotes.newGroup">New Group</button>
+                            </div>
                             <div class="table-container">
                                 <table class="quote-table">
                                     <thead>
                                         <tr>
-                                            <th data-i18n="quotes.resourceName">Resource Name</th>
+                                            <th data-i18n="quotes.group">Group</th>
                                             <th data-i18n="quotes.region">Region</th>
-                                            <th data-i18n="quotes.quantityCol">Quantity</th>
+                                            <th data-i18n="quotes.resourceName">Resource Name</th>
+                                            <th data-i18n="quotes.parameters">Parameters</th>
                                             <th data-i18n="quotes.unitPriceCol">Unit Price</th>
+                                            <th data-i18n="quotes.duration">Duration</th>
+                                            <th data-i18n="quotes.commitmentDiscount">Commitment Discount</th>
+                                            <th data-i18n="quotes.subtotal">Subtotal</th>
                                             <th data-i18n="quotes.actions">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="quote-items-body">
                                         <tr>
-                                            <td colspan="5" class="empty-message" data-i18n="quotes.noItems">No items in quote. Add resources to get started.</td>
+                                            <td colspan="9" class="empty-message" data-i18n="quotes.noItems">No items in quote. Add resources to get started.</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -545,6 +553,7 @@
     <script src="/js/auth.js"></script>
     <script src="/js/app.js"></script>
     <script src="/js/catalog.js"></script>
+    <script src="/js/resource-parameter-helper.js"></script>
     <script src="/js/quote.js"></script>
     <script src="/js/quote-builder.js"></script>
     <script src="/js/consumption.js"></script>
